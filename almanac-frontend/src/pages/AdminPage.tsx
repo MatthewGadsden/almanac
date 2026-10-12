@@ -2,8 +2,10 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { errorMessageOf } from '../api'
 import { useAuth } from '../auth/AuthContext'
-import { useEntries } from '../entries/EntriesContext'
-import { byRecentlyUpdated, editNotePath, formatDate, notePath } from '../notes'
+import { PrivateBadge } from '../components/PrivateBadge'
+import { byRecentlyUpdated, formatDate } from '../items'
+import { editItemPath, itemPath, KINDS, newItemPath } from '../kinds'
+import { useItems } from '../state/ItemsContext'
 
 /** /admin: the login form, or the admin's dashboard once logged in. Nothing on the site links here. */
 export function AdminPage() {
@@ -76,7 +78,7 @@ function LoginForm() {
 
 function AdminDashboard({ username }: { username: string }) {
 	const { logout } = useAuth()
-	const { entries, status } = useEntries()
+	const { items, status } = useItems()
 	const [error, setError] = useState<string | null>(null)
 
 	async function handleLogout() {
@@ -88,7 +90,7 @@ function AdminDashboard({ username }: { username: string }) {
 		}
 	}
 
-	const notes = [...entries].sort(byRecentlyUpdated)
+	const sorted = [...items].sort(byRecentlyUpdated)
 
 	return (
 		<section>
@@ -97,8 +99,11 @@ function AdminDashboard({ username }: { username: string }) {
 				Logged in as <strong className="admin-name">{username}</strong>.
 			</p>
 			<div className="note-actions">
-				<Link className="pill-button" to="/notes/new">
-					Plant a note
+				<Link className="pill-button" to={newItemPath('note')}>
+					{KINDS.note.create}
+				</Link>
+				<Link className="pill-button" to={newItemPath('film')}>
+					{KINDS.film.create}
 				</Link>
 				<button type="button" className="pill-button pill-button-quiet" onClick={handleLogout}>
 					Log out
@@ -106,16 +111,19 @@ function AdminDashboard({ username }: { username: string }) {
 			</div>
 			{error && <p className="notice notice-error">{error}</p>}
 
-			<h3 className="aside-heading admin-notes-heading">Notes ({notes.length})</h3>
-			{status === 'ready' && notes.length === 0 && <p className="notice">Nothing planted yet.</p>}
-			{notes.length > 0 && (
+			<h3 className="aside-heading admin-notes-heading">Everything ({sorted.length})</h3>
+			{status === 'ready' && sorted.length === 0 && <p className="notice">Nothing planted yet.</p>}
+			{sorted.length > 0 && (
 				<ul className="admin-notes">
-					{notes.map((entry) => (
-						<li key={entry.id}>
-							<Link to={notePath(entry.id)}>{entry.title}</Link>
-							<span className="meta">{entry.topic}</span>
-							<span className="meta">Tended {formatDate(entry.updated_at)}</span>
-							<Link className="admin-edit" to={editNotePath(entry.id)}>
+					{sorted.map((item) => (
+						<li key={item.id}>
+							<span className="admin-title">
+								<Link to={itemPath(item)}>{item.title}</Link> <PrivateBadge item={item} />
+							</span>
+							<span className="meta">{KINDS[item.kind].label}</span>
+							<span className="meta">{item.topic ?? '—'}</span>
+							<span className="meta">Tended {formatDate(item.updated_at)}</span>
+							<Link className="admin-edit" to={editItemPath(item)}>
 								Tend
 							</Link>
 						</li>

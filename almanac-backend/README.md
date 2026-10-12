@@ -60,22 +60,34 @@ cargo test
 | Method   | Path             | Description              | Success |
 | -------- | ---------------- | ------------------------ | ------- |
 | `GET`    | `/health_check`  | Liveness check           | `200`   |
-| `GET`    | `/entries`       | List all entries         | `200`   |
-| `POST`   | `/entries`       | Create an entry (admin)  | `201`   |
-| `GET`    | `/entries/{id}`  | Fetch a single entry     | `200`   |
-| `PUT`    | `/entries/{id}`  | Replace an entry (admin) | `200`   |
-| `DELETE` | `/entries/{id}`  | Delete an entry (admin)  | `204`   |
+| `GET`    | `/items`         | List items, newest first | `200`   |
+| `POST`   | `/items`         | Create an item (admin)   | `201`   |
+| `GET`    | `/items/{id}`    | Fetch a single item      | `200`   |
+| `PUT`    | `/items/{id}`    | Replace an item (admin)  | `200`   |
+| `DELETE` | `/items/{id}`    | Delete an item (admin)   | `204`   |
 | `POST`   | `/admin/login`   | Log in, sets the session cookie | `200` |
 | `POST`   | `/admin/logout`  | End the session          | `204`   |
 | `GET`    | `/admin/me`      | The logged-in admin      | `200`   |
 
-`POST` and `PUT` take a JSON body:
+Everything in the garden is an **item** with a `kind` (`note` or `film`). `POST` and `PUT` take:
 
 ```json
-{ "title": "Equinox", "topic": "Seasons", "body": "Day and night are equal." }
+{
+  "kind": "film",
+  "title": "Perfect Days",
+  "topic": null,
+  "body": "<p>Quietly wonderful.</p>",
+  "occurred_at": "2026-10-11T12:00:00Z",
+  "visibility": "public",
+  "data": { "year": 2023, "director": "Wim Wenders", "rating": 4.5, "liked": true, "rewatch": false, "poster_url": "https://..." }
+}
 ```
 
-Unknown ids return `404`; missing fields or a blank title/topic return `400`.
+- `topic` is required for notes and optional for other kinds.
+- `data` holds fields specific to a kind. Notes have none. A film's `data` is validated: `rating` must be 0.5 to 5 in half stars, `year` must be between 1870 and 2100, `poster_url` must be http(s), and unknown fields are rejected.
+- `occurred_at` (when it happened) defaults to now on create. `visibility` defaults to `public`. On `PUT`, leaving either out keeps the current value.
+- Private items are only returned to the logged-in admin. Visitors get `404` for them.
+- Unknown ids return `404`. Invalid payloads return `400`.
 
 Endpoints marked (admin) return `401` without a session. `/admin/login` takes `{ "username": "...", "password": "..." }`.
 

@@ -5,8 +5,9 @@ import { GardenLayout } from './components/GardenLayout'
 import { ReadingLayout } from './components/ReadingLayout'
 import { AdminPage } from './pages/AdminPage'
 import { HomePage } from './pages/HomePage'
-import { NoteFormPage } from './pages/NoteFormPage'
-import { NotePage } from './pages/NotePage'
+import { FilmsPage } from './pages/FilmsPage'
+import { ItemFormPage } from './pages/ItemFormPage'
+import { ItemPage } from './pages/ItemPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { TopicPage } from './pages/TopicPage'
 
@@ -25,15 +26,19 @@ function App() {
 				{/* Browsing: sidebar with the topic index beside a wide content area */}
 				<Route element={<GardenLayout />}>
 					<Route path="/" element={<HomePage />} />
+					<Route path="/films" element={<FilmsPage />} />
 					<Route path="/topics/:topic" element={<TopicPage />} />
 				</Route>
 
 				{/* Reading and writing: a single centred column with a slim header */}
 				<Route element={<ReadingLayout />}>
 					<Route path="/admin" element={<AdminPage />} />
-					<Route path="/notes/new" element={<NoteFormPage />} />
-					<Route path="/notes/:id" element={<NotePage />} />
-					<Route path="/notes/:id/edit" element={<NoteFormPage />} />
+					<Route path="/notes/new" element={<ItemFormPage kind="note" />} />
+					<Route path="/notes/:id" element={<ItemPage kind="note" />} />
+					<Route path="/notes/:id/edit" element={<ItemFormPage kind="note" />} />
+					<Route path="/films/new" element={<ItemFormPage kind="film" />} />
+					<Route path="/films/:id" element={<ItemPage kind="film" />} />
+					<Route path="/films/:id/edit" element={<ItemFormPage kind="film" />} />
 					<Route path="*" element={<NotFoundPage />} />
 				</Route>
 			</Routes>

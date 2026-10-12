@@ -1,13 +1,13 @@
-import { useEntries } from '../entries/EntriesContext'
+import { useItems } from '../state/ItemsContext'
 
-/** Shown in place of a page while the entry list is loading or failed to load. */
+/** Shown in place of a page while the item list is loading or failed to load. */
 export function LoadState() {
-	const { status, error } = useEntries()
+	const { status, error } = useItems()
 
 	if (status === 'error') {
 		return (
 			<section>
-				<h2 className="section-heading">Couldn't load notes</h2>
+				<h2 className="section-heading">Couldn't load the garden</h2>
 				<p className="notice notice-error">{error}</p>
 				<p className="notice">
 					Start the API with <code>cargo run</code> in <code>almanac-backend/</code>, then refresh.
@@ -16,5 +16,5 @@ export function LoadState() {
 		)
 	}
 
-	return <p className="notice">Loading notes…</p>
+	return <p className="notice">Loading…</p>
 }

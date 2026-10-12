@@ -92,35 +92,35 @@ impl TestApp {
 			.expect("Failed to execute request.")
 	}
 
-	pub async fn post_entry(&self, body: &serde_json::Value) -> reqwest::Response {
+	pub async fn post_item(&self, body: &serde_json::Value) -> reqwest::Response {
 		self.api_client
-			.post(format!("{}/entries", self.address))
+			.post(format!("{}/items", self.address))
 			.json(body)
 			.send()
 			.await
 			.expect("Failed to execute request.")
 	}
 
-	pub async fn get_entries(&self) -> reqwest::Response {
-		self.get("/entries").await
+	pub async fn get_items(&self) -> reqwest::Response {
+		self.get("/items").await
 	}
 
-	pub async fn get_entry(&self, id: impl Display) -> reqwest::Response {
-		self.get(&format!("/entries/{id}")).await
+	pub async fn get_item(&self, id: impl Display) -> reqwest::Response {
+		self.get(&format!("/items/{id}")).await
 	}
 
-	pub async fn put_entry(&self, id: impl Display, body: &serde_json::Value) -> reqwest::Response {
+	pub async fn put_item(&self, id: impl Display, body: &serde_json::Value) -> reqwest::Response {
 		self.api_client
-			.put(format!("{}/entries/{}", self.address, id))
+			.put(format!("{}/items/{}", self.address, id))
 			.json(body)
 			.send()
 			.await
 			.expect("Failed to execute request.")
 	}
 
-	pub async fn delete_entry(&self, id: impl Display) -> reqwest::Response {
+	pub async fn delete_item(&self, id: impl Display) -> reqwest::Response {
 		self.api_client
-			.delete(format!("{}/entries/{}", self.address, id))
+			.delete(format!("{}/items/{}", self.address, id))
 			.send()
 			.await
 			.expect("Failed to execute request.")

@@ -10,8 +10,8 @@ use std::net::TcpListener;
 
 use crate::configuration::Settings;
 use crate::routes::{
-	create_entry, current_admin, delete_entry, get_entry, health_check, list_entries, login,
-	logout, update_entry,
+	create_item, current_admin, delete_item, get_item, health_check, list_items, login, logout,
+	update_item,
 };
 
 /// Session cookie settings, taken from `Settings`.
@@ -56,12 +56,12 @@ pub fn run(
 			.wrap(session_middleware)
 			.route("/health_check", web::get().to(health_check))
 			.service(
-				web::scope("/entries")
-					.route("", web::get().to(list_entries))
-					.route("", web::post().to(create_entry))
-					.route("/{id}", web::get().to(get_entry))
-					.route("/{id}", web::put().to(update_entry))
-					.route("/{id}", web::delete().to(delete_entry)),
+				web::scope("/items")
+					.route("", web::get().to(list_items))
+					.route("", web::post().to(create_item))
+					.route("/{id}", web::get().to(get_item))
+					.route("/{id}", web::put().to(update_item))
+					.route("/{id}", web::delete().to(delete_item)),
 			)
 			.service(
 				web::scope("/admin")

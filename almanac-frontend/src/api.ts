@@ -1,19 +1,47 @@
 // Client for almanac-backend. In dev, Vite proxies /api to the backend (see vite.config.ts).
 const API_URL: string = import.meta.env.VITE_API_URL ?? '/api'
 
-export interface Entry {
+export type ItemKind = 'note' | 'film'
+export type Visibility = 'public' | 'private'
+
+export interface FilmData {
+	year?: number
+	director?: string
+	/** Out of 5 in half stars. */
+	rating?: number
+	rewatch: boolean
+	liked: boolean
+	poster_url?: string
+}
+
+interface ItemBase {
 	id: string
 	title: string
-	topic: string
+	topic: string | null
+	/** The admin's own writing, as HTML. */
 	body: string
+	/** When it happened (watched, run, ...), as opposed to when it was logged. */
+	occurred_at: string
+	visibility: Visibility
+	/** 'manual', or the connector an item was imported from. */
+	source: string
+	external_id: string | null
 	created_at: string
 	updated_at: string
 }
 
-export interface EntryPayload {
+export type NoteItem = ItemBase & { kind: 'note'; data: Record<string, never> }
+export type FilmItem = ItemBase & { kind: 'film'; data: FilmData }
+export type Item = NoteItem | FilmItem
+
+export interface ItemPayload {
+	kind: ItemKind
 	title: string
-	topic: string
+	topic: string | null
 	body: string
+	data?: Partial<FilmData>
+	occurred_at?: string
+	visibility: Visibility
 }
 
 export interface AdminUser {
@@ -75,20 +103,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	return (await response.json()) as T
 }
 
-export function listEntries(): Promise<Entry[]> {
-	return request<Entry[]>('/entries')
+export function listItems(): Promise<Item[]> {
+	return request<Item[]>('/items')
 }
 
-export function createEntry(payload: EntryPayload): Promise<Entry> {
-	return request<Entry>('/entries', { method: 'POST', body: JSON.stringify(payload) })
+export function createItem(payload: ItemPayload): Promise<Item> {
+	return request<Item>('/items', { method: 'POST', body: JSON.stringify(payload) })
 }
 
-export function updateEntry(id: string, payload: EntryPayload): Promise<Entry> {
-	return request<Entry>(`/entries/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
+export function updateItem(id: string, payload: ItemPayload): Promise<Item> {
+	return request<Item>(`/items/${id}`, { method: 'PUT', body: JSON.stringify(payload) })
 }
 
-export function deleteEntry(id: string): Promise<void> {
-	return request<void>(`/entries/${id}`, { method: 'DELETE' })
+export function deleteItem(id: string): Promise<void> {
+	return request<void>(`/items/${id}`, { method: 'DELETE' })
 }
 
 /** The logged-in admin, or null when there is no session. */

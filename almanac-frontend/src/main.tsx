@@ -3,15 +3,15 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import App from './App.tsx'
 import { AuthProvider } from './auth/AuthProvider.tsx'
-import { EntriesProvider } from './entries/EntriesProvider.tsx'
+import { ItemsProvider } from './state/ItemsProvider.tsx'
 
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<BrowserRouter>
 			<AuthProvider>
-				<EntriesProvider>
+				<ItemsProvider>
 					<App />
-				</EntriesProvider>
+				</ItemsProvider>
 			</AuthProvider>
 		</BrowserRouter>
 	</StrictMode>,

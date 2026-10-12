@@ -670,6 +670,7 @@ section {
 }
 
 .note-form input,
+.note-form select,
 .note-form textarea {
 	width: 100%;
 	padding: 0.65rem 0.8rem;
@@ -690,6 +691,7 @@ section {
 }
 
 .note-form input:hover,
+.note-form select:hover,
 .note-form textarea:hover,
 .note-form input:focus,
 .note-form textarea:focus {
@@ -740,6 +742,426 @@ section {
 
 .note-form .note-actions {
 	margin-top: 0.25rem;
+}
+
+/* ---------- Kinds: index, section headers, films ---------- */
+
+.section-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1.25rem;
+}
+
+.section-header .section-heading {
+	margin-bottom: 0;
+}
+
+.section-link {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	color: var(--text-link);
+	transition: color 0.2s ease;
+}
+
+.section-link:hover {
+	color: var(--text-link-hover);
+}
+
+.index-kind {
+	margin: 1.25rem 0 0.6rem;
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: var(--text-emphasis);
+}
+
+.index-heading + .index-kind {
+	margin-top: 0;
+}
+
+.index-collection {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	padding-left: 0.3rem;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	transition: color 0.2s ease;
+}
+
+.index-collection:hover,
+.index-collection.active {
+	color: var(--text-link-hover);
+}
+
+.status-badge-private {
+	color: var(--text-pill);
+	border-color: var(--border-pill);
+}
+
+/* Posters: 2:3 like a film poster; a typographic stand-in when there's no image */
+.poster {
+	display: block;
+	aspect-ratio: 2 / 3;
+	object-fit: cover;
+	border-radius: 4px;
+	border: 1px solid var(--border-soft);
+	background: var(--bg-surface-strong);
+}
+
+.poster-small {
+	width: 2.4rem;
+}
+
+.poster-medium {
+	width: 100%;
+}
+
+.poster-large {
+	width: 13rem;
+	flex-shrink: 0;
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+}
+
+.poster-placeholder {
+	display: flex;
+	align-items: flex-end;
+	padding: 0.65rem;
+	overflow: hidden;
+	background: linear-gradient(160deg, var(--bg-pill), var(--bg-surface-strong));
+}
+
+.poster-placeholder span {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	line-height: 1.35;
+	color: var(--text-subtle);
+	overflow-wrap: anywhere;
+}
+
+.poster-small.poster-placeholder span {
+	display: none;
+}
+
+.rating {
+	color: var(--text-emphasis);
+	letter-spacing: 0.08em;
+	white-space: nowrap;
+}
+
+.film-flag {
+	font-size: 0.85rem;
+	color: var(--text-subtle);
+}
+
+.film-flag-liked {
+	color: var(--accent);
+}
+
+/* Poster grid ("Recently watched") */
+.film-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+	gap: 1.25rem 1.1rem;
+}
+
+.film-card-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.film-card-link .poster {
+	transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.film-card-link:hover .poster {
+	border-color: var(--border-hover);
+	transform: translateY(-2px);
+}
+
+.film-card-title {
+	font-size: 0.92rem;
+	font-weight: 500;
+	line-height: 1.3;
+	color: var(--text-emphasis);
+}
+
+.film-card-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	min-height: 1.1rem;
+	font-size: 0.8rem;
+}
+
+/* Home: latest updates and notes on the left, recently watched films in a right-hand column */
+.home-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 20rem;
+	grid-template-rows: auto 1fr;
+	grid-template-areas:
+		"latest films"
+		"notes films";
+	gap: 0 3rem;
+	align-items: start;
+}
+
+.home-latest {
+	grid-area: latest;
+	min-width: 0;
+}
+
+.home-notes {
+	grid-area: notes;
+	min-width: 0;
+}
+
+.home-films {
+	grid-area: films;
+	position: sticky;
+	top: var(--page-pad-y);
+}
+
+.home-layout .update-list {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* One shared panel for the list, with a rule between films (no per-film outline or hover) */
+.recent-films {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+	/* Keeps the hovered row's tint inside the panel's rounded corners */
+	overflow: hidden;
+}
+
+.recent-films li + li {
+	border-top: 1px solid var(--border-soft);
+}
+
+.recent-film {
+	display: grid;
+	grid-template-columns: 2.4rem minmax(0, 1fr);
+	align-items: start;
+	gap: 0.85rem;
+	padding: 0.85rem 1rem;
+	transition: background 0.2s ease;
+}
+
+/* Subtle hover: a faint light tint on the row and a warmer title */
+.recent-film:hover {
+	background: var(--column-tint);
+}
+
+.recent-film-title {
+	transition: color 0.2s ease;
+}
+
+.recent-film:hover .recent-film-title {
+	color: var(--text-link-hover);
+}
+
+.recent-film-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	min-width: 0;
+}
+
+.recent-film-title {
+	font-size: 0.95rem;
+	font-weight: 500;
+	line-height: 1.3;
+	color: var(--text-emphasis);
+}
+
+.recent-film-meta {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.45rem;
+	font-size: 0.8rem;
+}
+
+.recent-film-review {
+	font-size: 0.85rem;
+	line-height: 1.5;
+	color: var(--text-muted);
+}
+
+/* Mid widths: a narrower films column and two-up update tiles */
+@media (max-width: 1400px) {
+	.home-layout {
+		grid-template-columns: minmax(0, 1fr) 17rem;
+		gap: 0 2.5rem;
+	}
+
+	.home-layout .update-list {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* Not enough width for two columns: stack as latest, films, then notes */
+@media (max-width: 1180px) {
+	.home-layout {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: none;
+		grid-template-areas:
+			"latest"
+			"films"
+			"notes";
+		gap: 1rem;
+	}
+
+	.home-films {
+		position: static;
+		padding-bottom: 3rem;
+	}
+
+	.home-layout .update-list {
+		grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	}
+}
+
+/* Film diary */
+.diary-stats {
+	margin-bottom: 0;
+}
+
+.diary-month {
+	margin-top: 1.75rem;
+}
+
+.diary {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+}
+
+.diary li + li {
+	border-top: 1px solid var(--border-soft);
+}
+
+.diary-row {
+	display: grid;
+	grid-template-columns: 2.5rem 2.4rem minmax(0, 1fr) 6rem 5rem;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.55rem 1rem;
+	transition: background 0.2s ease;
+}
+
+.diary-row:hover {
+	background: var(--bg-surface-hover);
+}
+
+.diary-day {
+	font-family: var(--font-mono);
+	font-size: 1.3rem;
+	text-align: right;
+	color: var(--text-subtle);
+}
+
+.diary-title {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.diary-film {
+	font-weight: 500;
+	color: var(--text-emphasis);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.diary-flags {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+/* Film page header: poster beside the title */
+.film-header {
+	display: flex;
+	align-items: flex-end;
+	gap: 2rem;
+}
+
+.film-header-text {
+	min-width: 0;
+}
+
+.film-details {
+	margin: 0.6rem 0 0;
+	color: var(--text-muted);
+}
+
+.film-verdict {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin: 0.75rem 0 0;
+	font-size: 1.25rem;
+}
+
+/* Form additions for films */
+.note-form-row-4 {
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.checkbox-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 1.5rem;
+	padding-bottom: 0.75rem;
+}
+
+.note-form label.checkbox {
+	flex-direction: row;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.note-form label.checkbox > span {
+	font-family: inherit;
+	font-size: 0.92rem;
+	text-transform: none;
+	letter-spacing: normal;
+	color: var(--text);
+}
+
+.note-form input[type="checkbox"] {
+	width: auto;
+	padding: 0;
+	accent-color: var(--accent);
+}
+
+.visibility-field {
+	max-width: 22rem;
+}
+
+.admin-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 /* ---------- Reading layout: note pages and forms ---------- */
@@ -861,9 +1283,14 @@ section {
 	}
 
 	.sidebar,
-	.content > section {
+	.content > section,
+	.home-layout > * {
 		position: relative;
 		padding: var(--band-pad-y) 0;
+	}
+
+	.home-layout {
+		gap: var(--band-gap);
 	}
 
 	.sidebar-content {
@@ -871,7 +1298,8 @@ section {
 	}
 
 	.sidebar::before,
-	.content > section::before {
+	.content > section::before,
+	.home-layout > ::before {
 		content: "";
 		position: absolute;
 		inset: 0 calc(-1 * var(--page-pad-x));
@@ -886,7 +1314,8 @@ section {
 		top: calc(-1 * var(--page-pad-y));
 	}
 
-	.content > :last-child::before {
+	.content > :last-child::before,
+	.home-layout > :last-child::before {
 		bottom: calc(-1 * var(--page-pad-y));
 	}
 
@@ -919,6 +1348,30 @@ section {
 	.note-form .code-input,
 	.note-preview-panel {
 		min-height: 18rem;
+	}
+
+	.film-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 1.25rem;
+	}
+
+	.poster-large {
+		width: 9rem;
+	}
+
+	.note-form-row-4 {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.diary-row {
+		grid-template-columns: 1.75rem 2.4rem minmax(0, 1fr) auto;
+		gap: 0.75rem;
+		padding: 0.55rem 0.75rem;
+	}
+
+	.diary-flags {
+		display: none;
 	}
 
 	.reading-header {
@@ -954,7 +1407,7 @@ section {
 
 .admin-notes li {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 10rem 11rem auto;
+	grid-template-columns: minmax(0, 1fr) 4rem 9rem 11rem auto;
 	align-items: center;
 	gap: 1rem;
 	padding: 0.65rem 1rem;

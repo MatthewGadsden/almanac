@@ -1,6 +1,6 @@
 # Almanac frontend
 
-A digital-garden style UI for [almanac-backend](../almanac-backend): a topic index of notes, latest updates, and pages to plant (create), read, tend (edit) and prune (delete) notes. Built with React 19, TypeScript, React Router and Vite, using the Tokyo Snow theme from my portfolio.
+A digital-garden style UI for [almanac-backend](../almanac-backend): notes grouped by topic, a film diary, latest updates across everything, and an admin area (`/admin`) for planting, logging, tending and pruning. Built with React 19, TypeScript, React Router and Vite, using the Tokyo Snow theme from my portfolio.
 
 ## Getting started
 
