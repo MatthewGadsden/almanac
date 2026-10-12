@@ -75,6 +75,17 @@ export function ItemPage({ kind }: { kind: ItemKind }) {
 							<Link to={topicPath(item.topic)}>{item.topic}</Link>
 						</MetaRow>
 					)}
+					{item.source === 'letterboxd' && (
+						<MetaRow label="From">
+							{isFilm(item) && item.data.letterboxd_url ? (
+								<a href={item.data.letterboxd_url} target="_blank" rel="noreferrer">
+									Letterboxd ↗
+								</a>
+							) : (
+								'Letterboxd'
+							)}
+						</MetaRow>
+					)}
 					{item.visibility === 'private' && (
 						<MetaRow label="Visibility">
 							<PrivateBadge item={item} />

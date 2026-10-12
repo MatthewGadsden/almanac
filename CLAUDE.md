@@ -70,10 +70,18 @@ Request flow: `main.rs` loads `configuration.yaml` (`configuration::get_configur
   - `source` + `external_id` (unique together) identify imported items, so connectors can upsert instead of duplicating. Everything is `manual` today.
 - `src/domain/`: `Item` (the JSON response; tests deserialise it too), `ItemPayload` (POST/PUT body) and `validate()`, which returns a `ValidItem` with `data` normalised per kind. `FilmData::parse` validates film fields with `deny_unknown_fields`: rating 0.5–5 in half stars, year 1870–2100, http(s) poster URL.
 - `src/routes/items.rs`: handlers query into a private `ItemRow` (`kind`/`visibility` as `String`) and convert with `TryFrom<ItemRow> for Item`. sqlx enum derives aren't used for TEXT columns. Reads take `Option<AdminUser>` to decide whether private items are included. On update, `occurred_at`/`visibility` use `COALESCE`, so leaving them out keeps the current value. Lists are ordered by `occurred_at DESC`.
+- **Connectors** (`src/connectors/`) import items from other services:
+  - The `connections` table has one row per `Provider` (`letterboxd`), holding provider settings (JSONB), the import visibility, and the last sync's time, summary and error. Routes are `/connections` (admin only): `GET`, `PUT /{provider}` (validates settings via `Provider::validate_settings`), `DELETE /{provider}` (imported items are kept) and `POST /{provider}/sync`.
+  - `connectors::sync` fetches, then `store::upsert_items` saves the items by `(source, external_id)`, then `record_sync` stores the outcome. On conflict, only provider facts change: `data` is merged with `||` and `occurred_at` is replaced. Title, body, topic and visibility are never overwritten, and `updated_at` isn't bumped, so a sync never makes an item look "Tended". `RETURNING (xmax = 0)` tells inserts apart from updates.
+  - `ConnectorContext` (a reqwest client with an almanac User-Agent and 20s timeout, plus `ConnectorSettings`) is shared via `web::Data`, and is now the fourth argument to `startup::run`. `main.rs` spawns `run_scheduler`, which syncs everything at startup and every `connectors.sync_interval_minutes` (`0` turns it off; use that for throwaway backends).
+  - **Letterboxd** (`letterboxd.rs`) reads `{letterboxd_base_url}/{username}/rss/`: the 50 latest activities. Only `letterboxd-watch-*` and `letterboxd-review-*` items with a `letterboxd:filmTitle` become films; lists are counted as skipped. The description's first `<p><img>` becomes `poster_url`, and a body that only says "Watched on …" becomes empty. Unknown usernames give a 404, which becomes a 502 with a readable error. Usernames are validated (letters, digits and `_`, lowercased) because they're put into the URL path.
+  - **Adding a provider:** a `Provider` variant (plus `as_str`/`parse`/`validate_settings`), a module with a `fetch` returning `(Vec<ImportedItem>, skipped)`, a match arm in `fetch_and_save`, and settings in `configuration.yaml` if it needs any.
+  - **Tests:** `spawn_app` starts a wiremock `MockServer` as `app.letterboxd` and points `letterboxd_base_url` at it. `tests/api/fixtures/letterboxd_feed.xml` is a hand-written feed in the real format. Don't commit real users' feeds: reviews are their writing.
 - `src/error.rs`: `ApiError` maps errors to responses:
   - `NotFound` → 404
   - `Validation(msg)` → 400 with `{"error": msg}`
   - `Unauthorized` (no session) and `InvalidCredentials` → 401 with `{"error": …}`
+  - `Upstream(msg)` (an outside service like Letterboxd failed) → 502 with `{"error": msg}`
   - `Database` / `Unexpected` → 500, logged, with an empty body
 
   `From<sqlx::Error>` makes `?` work. An invalid UUID in the path or a malformed JSON body is rejected by actix's extractors (404/400, plain-text body) before the handler runs.
@@ -103,6 +111,7 @@ No migration is needed unless the kind needs its own index.
   - `src/state/ItemsProvider.tsx` loads every item the viewer may see (`GET /items`) and holds it in memory. It reloads when the viewer changes (login/logout), because the admin also gets private items. A list loaded for a different viewer is treated as still loading, which avoids calling setState synchronously inside an effect.
   - Create, update and delete patch the in-memory list after the API call succeeds; nothing is refetched. Pages and the sidebar read from `useItems()` and derive everything from that list, showing `<LoadState />` until it's `ready`.
   - Contexts and hooks live in `*Context.ts` files, separate from the providers, to satisfy `react-refresh/only-export-components`. Shared constants go in `src/site.ts` for the same reason.
+- **Connections (admin):** `src/components/Connections.tsx` is the panel on `/admin`. Connecting saves and then syncs immediately. After a sync it calls `useItems().reload()` (a background refetch with no loading state) so imported items appear at once. `ItemFormPage` spreads the existing film `data` into the payload, so fields the form doesn't show (`letterboxd_url`, `tmdb_id`) survive an edit. It also explains which fields the next sync will overwrite. Film pages show "From: Letterboxd ↗".
 - `src/kinds.ts` holds each kind's label, plural, URL slug (`notes`, `films`) and create verb ("Plant a note", "Log a film"), plus `itemPath`/`editItemPath`/`newItemPath`.
 - `src/items.ts` holds the pure helpers: sorting, `groupByTopic`/`groupByMonth`, dates (`toDateInput`/`fromDateInput` store a picked date at midday UTC so it's the same day in any timezone), `excerpt`, `stars()`, and the `isNote`/`isFilm` type guards. "Tended" means `updated_at !== created_at`, which relies on the backend setting both to the same value on insert.
 - **Routes** (`App.tsx`) use two layout routes:
@@ -143,6 +152,9 @@ No migration is needed unless the kind needs its own index.
 The agreed plan:
 1. ~~Generalise entries into items~~ (done)
 2. ~~Films~~ (done)
-3. **Next:** a connector framework (a `connections` table holding credentials, a sync cursor and last-sync time; a sync timer plus "Sync now"; upserts on `source` + `external_id`), starting with a **Letterboxd RSS** connector. Letterboxd has no open API.
-4. **Strava:** OAuth, with activities kept **private**. Strava's API terms (as of late 2024) only allow showing a user their own data, and GPS routes can reveal a home location.
+3. ~~The connector framework and a Letterboxd RSS connector~~ (done). Known gaps:
+   - The feed only holds the latest 50 entries, so a back catalogue needs a Letterboxd CSV export importer.
+   - A film logged by hand and the same film imported from Letterboxd become two items; matching on `tmdb_id` plus the date would fix that.
+   - Posters are hotlinked from Letterboxd's CDN.
+4. **Next: Strava.** OAuth, with activities kept **private**. Strava's API terms (as of late 2024) only allow showing a user their own data, and GPS routes can reveal a home location.
 5. Links between items, and more kinds and connectors.

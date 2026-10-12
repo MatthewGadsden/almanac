@@ -8,6 +8,8 @@ export interface ItemsContextValue {
 	createItem: (payload: ItemPayload) => Promise<Item>
 	updateItem: (id: string, payload: ItemPayload) => Promise<Item>
 	deleteItem: (id: string) => Promise<void>
+	/** Refetches the list in the background, e.g. after a connector sync imported items. */
+	reload: () => Promise<void>
 }
 
 export const ItemsContext = createContext<ItemsContextValue | null>(null)

@@ -4,6 +4,14 @@ pub struct Settings {
 	pub application_port: u16,
 	pub session_key: String,
 	pub secure_cookies: bool,
+	pub connectors: ConnectorSettings,
+}
+
+#[derive(serde::Deserialize, Clone, Debug)]
+pub struct ConnectorSettings {
+	pub letterboxd_base_url: String,
+	/// 0 turns automatic syncing off.
+	pub sync_interval_minutes: u64,
 }
 
 #[derive(serde::Deserialize)]

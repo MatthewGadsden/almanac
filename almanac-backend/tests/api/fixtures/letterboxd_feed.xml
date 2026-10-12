@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:letterboxd="https://letterboxd.com" xmlns:tmdb="https://themoviedb.org">
+	<channel>
+		<title>Letterboxd - Test Member</title>
+		<link>https://letterboxd.com/testmember/</link>
+		<description>Letterboxd - Test Member</description>
+		<atom:link rel="self" href="https://letterboxd.com/testmember/rss/" type="application/rss+xml"/>
+
+			<item> <title>Perfect Days, 2023 - ★★★★½</title> <link>https://letterboxd.com/testmember/film/perfect-days/</link> <guid isPermaLink="false">letterboxd-watch-1001</guid> <pubDate>Sun, 11 Oct 2026 21:10:00 +1300</pubDate> <letterboxd:watchedDate>2026-10-11</letterboxd:watchedDate> <letterboxd:rewatch>No</letterboxd:rewatch> <letterboxd:filmTitle>Perfect Days</letterboxd:filmTitle> <letterboxd:filmYear>2023</letterboxd:filmYear> <letterboxd:memberRating>4.5</letterboxd:memberRating> <letterboxd:memberLike>Yes</letterboxd:memberLike> <tmdb:movieId>976893</tmdb:movieId> <description><![CDATA[ <p><img src="https://a.ltrbxd.com/resized/film-poster/perfect-days-0-600-0-900-crop.jpg?v=1"/></p> <p>Watched on Sunday October 11, 2026.</p> ]]></description> <dc:creator>Test Member</dc:creator> </item>
+
+			<item> <title>Paterson, 2016 - ★★★★</title> <link>https://letterboxd.com/testmember/film/paterson/1/</link> <guid isPermaLink="false">letterboxd-review-1002</guid> <pubDate>Thu, 08 Oct 2026 22:00:00 +1300</pubDate> <letterboxd:watchedDate>2026-10-08</letterboxd:watchedDate> <letterboxd:rewatch>Yes</letterboxd:rewatch> <letterboxd:filmTitle>Paterson</letterboxd:filmTitle> <letterboxd:filmYear>2016</letterboxd:filmYear> <letterboxd:memberRating>4.0</letterboxd:memberRating> <letterboxd:memberLike>No</letterboxd:memberLike> <tmdb:movieId>370755</tmdb:movieId> <description><![CDATA[ <p><img src="https://a.ltrbxd.com/resized/film-poster/paterson-0-600-0-900-crop.jpg?v=2"/></p> <p>Even better the second time.</p><p>The poems!</p> ]]></description> <dc:creator>Test Member</dc:creator> </item>
+
+			<item> <title>Past Lives, 2023</title> <link>https://letterboxd.com/testmember/film/past-lives/</link> <guid isPermaLink="false">letterboxd-watch-1003</guid> <pubDate>Sat, 03 Oct 2026 20:00:00 +1300</pubDate> <letterboxd:watchedDate>2026-10-03</letterboxd:watchedDate> <letterboxd:rewatch>No</letterboxd:rewatch> <letterboxd:filmTitle>Past Lives</letterboxd:filmTitle> <letterboxd:filmYear>2023</letterboxd:filmYear> <letterboxd:memberLike>No</letterboxd:memberLike> <tmdb:movieId>666277</tmdb:movieId> <description><![CDATA[ <p><img src="https://a.ltrbxd.com/resized/film-poster/past-lives-0-600-0-900-crop.jpg?v=3"/></p> <p>Watched on Saturday October 3, 2026.</p> ]]></description> <dc:creator>Test Member</dc:creator> </item>
+
+			<item> <title>Aftersun, 2022 - ★★★★★</title> <link>https://letterboxd.com/testmember/film/aftersun/</link> <guid isPermaLink="false">letterboxd-review-1004</guid> <pubDate>Sun, 27 Sep 2026 23:00:00 +1300</pubDate> <letterboxd:watchedDate>2026-09-27</letterboxd:watchedDate> <letterboxd:rewatch>No</letterboxd:rewatch> <letterboxd:filmTitle>Aftersun</letterboxd:filmTitle> <letterboxd:filmYear>2022</letterboxd:filmYear> <letterboxd:memberRating>5.0</letterboxd:memberRating> <letterboxd:memberLike>Yes</letterboxd:memberLike> <tmdb:movieId>965150</tmdb:movieId> <description><![CDATA[ <p><img src="https://a.ltrbxd.com/resized/film-poster/aftersun-0-600-0-900-crop.jpg?v=4"/></p> <p><em>This review may contain spoilers.</em></p> <p>Still thinking about it.</p> ]]></description> <dc:creator>Test Member</dc:creator> </item>
+
+			<item> <title>Favourites</title> <link>https://letterboxd.com/testmember/list/favourites/</link> <guid isPermaLink="false">letterboxd-list-2001</guid> <pubDate>Fri, 25 Sep 2026 10:00:00 +1300</pubDate> <description><![CDATA[ <p>A few favourites.</p> <ul><li><a href="https://letterboxd.com/film/aftersun/">Aftersun</a></li></ul> ]]></description> <dc:creator>Test Member</dc:creator> </item>
+
+	</channel>
+</rss>

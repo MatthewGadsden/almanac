@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { errorMessageOf } from '../api'
 import { useAuth } from '../auth/AuthContext'
+import { Connections } from '../components/Connections'
 import { PrivateBadge } from '../components/PrivateBadge'
-import { byRecentlyUpdated, formatDate } from '../items'
+import { byRecentlyUpdated, formatDate, isTended } from '../items'
 import { editItemPath, itemPath, KINDS, newItemPath } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 
@@ -111,6 +112,8 @@ function AdminDashboard({ username }: { username: string }) {
 			</div>
 			{error && <p className="notice notice-error">{error}</p>}
 
+			<Connections />
+
 			<h3 className="aside-heading admin-notes-heading">Everything ({sorted.length})</h3>
 			{status === 'ready' && sorted.length === 0 && <p className="notice">Nothing planted yet.</p>}
 			{sorted.length > 0 && (
@@ -120,9 +123,14 @@ function AdminDashboard({ username }: { username: string }) {
 							<span className="admin-title">
 								<Link to={itemPath(item)}>{item.title}</Link> <PrivateBadge item={item} />
 							</span>
-							<span className="meta">{KINDS[item.kind].label}</span>
+							<span className="meta">
+								{KINDS[item.kind].label}
+								{item.source === 'letterboxd' && ' · Letterboxd'}
+							</span>
 							<span className="meta">{item.topic ?? '—'}</span>
-							<span className="meta">Tended {formatDate(item.updated_at)}</span>
+							<span className="meta">
+								{isTended(item) ? 'Tended' : 'Planted'} {formatDate(item.updated_at)}
+							</span>
 							<Link className="admin-edit" to={editItemPath(item)}>
 								Tend
 							</Link>
