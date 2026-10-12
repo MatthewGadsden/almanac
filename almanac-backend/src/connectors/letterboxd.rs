@@ -6,7 +6,7 @@
 
 use chrono::{DateTime, NaiveDate, NaiveTime, Utc};
 
-use super::{Connection, ConnectorContext, ImportedItem, SyncError};
+use super::{Connection, ConnectorContext, Fetched, ImportedItem, SyncError};
 use crate::domain::{FilmData, ItemKind};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -95,11 +95,12 @@ impl LetterboxdEntry {
 	}
 }
 
-/// Fetches the user's feed and converts it. Returns the items and how many entries were skipped.
+/// Fetches the user's feed and converts it. The feed is always the latest 50 entries, so there's
+/// no cursor: every sync looks at all of them.
 pub(super) async fn fetch(
 	connection: &Connection,
 	context: &ConnectorContext,
-) -> Result<(Vec<ImportedItem>, usize), SyncError> {
+) -> Result<Fetched, SyncError> {
 	let settings =
 		LetterboxdSettings::parse(connection.settings.clone()).map_err(SyncError::Invalid)?;
 	let url = format!(
@@ -145,7 +146,11 @@ pub(super) async fn fetch(
 		}
 	}
 
-	Ok((items, skipped))
+	Ok(Fetched {
+		items,
+		skipped,
+		cursor: None,
+	})
 }
 
 /// Diary entries and reviews from a Letterboxd RSS feed, plus how many other entries (lists

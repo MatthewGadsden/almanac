@@ -20,6 +20,8 @@ pub struct TestApp {
 	pub test_admin: TestAdmin,
 	/// Stands in for letterboxd.com; mount the RSS responses a test needs on it.
 	pub letterboxd: MockServer,
+	/// Stands in for Strava: OAuth under /oauth, the API under /api/v3.
+	pub strava: MockServer,
 }
 
 pub struct TestAdmin {
@@ -163,6 +165,19 @@ impl TestApp {
 			.expect("Failed to execute request.")
 	}
 
+	pub async fn get_strava_authorize(&self) -> reqwest::Response {
+		self.get("/connections/strava/authorize").await
+	}
+
+	pub async fn post_strava_callback(&self, body: &serde_json::Value) -> reqwest::Response {
+		self.api_client
+			.post(format!("{}/connections/strava/callback", self.address))
+			.json(body)
+			.send()
+			.await
+			.expect("Failed to execute request.")
+	}
+
 	/// Drops the per-test database. Call at the end of every test.
 	pub async fn cleanup(&self) {
 		database_spindown(&self.config.database).await;
@@ -170,16 +185,27 @@ impl TestApp {
 }
 
 pub async fn spawn_app() -> TestApp {
+	spawn_app_with(|_| {}).await
+}
+
+/// Like `spawn_app`, with a chance to adjust the configuration first.
+pub async fn spawn_app_with(configure: impl FnOnce(&mut Settings)) -> TestApp {
 	let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
 	let port = listener.local_addr().unwrap().port();
 
 	let app_address = format!("http://127.0.0.1:{port}");
 
 	let letterboxd = MockServer::start().await;
+	let strava = MockServer::start().await;
 
 	let mut configuration = get_configuration().expect("Failed to read configuration");
 	configuration.database.database_name = Uuid::new_v4().to_string();
 	configuration.connectors.letterboxd_base_url = letterboxd.uri();
+	configuration.connectors.strava.client_id = "test-client".into();
+	configuration.connectors.strava.client_secret = "test-secret".into();
+	configuration.connectors.strava.oauth_base_url = format!("{}/oauth", strava.uri());
+	configuration.connectors.strava.api_base_url = format!("{}/api/v3", strava.uri());
+	configure(&mut configuration);
 
 	let connection_pool = configure_database(&configuration.database).await;
 
@@ -204,6 +230,7 @@ pub async fn spawn_app() -> TestApp {
 		api_client,
 		test_admin,
 		letterboxd,
+		strava,
 	}
 }
 

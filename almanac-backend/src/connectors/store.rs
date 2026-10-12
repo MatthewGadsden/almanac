@@ -16,6 +16,12 @@ pub struct Connection {
 	pub last_error: Option<String>,
 	pub created_at: DateTime<Utc>,
 	pub updated_at: DateTime<Utc>,
+	/// OAuth tokens. Secret: never serialised into API responses.
+	#[serde(skip)]
+	pub credentials: Option<serde_json::Value>,
+	/// Where the next sync should continue from. Internal to each provider.
+	#[serde(skip)]
+	pub sync_cursor: Option<serde_json::Value>,
 }
 
 struct ConnectionRow {
@@ -27,6 +33,8 @@ struct ConnectionRow {
 	last_error: Option<String>,
 	created_at: DateTime<Utc>,
 	updated_at: DateTime<Utc>,
+	credentials: Option<serde_json::Value>,
+	sync_cursor: Option<serde_json::Value>,
 }
 
 impl TryFrom<ConnectionRow> for Connection {
@@ -51,6 +59,8 @@ impl TryFrom<ConnectionRow> for Connection {
 			last_error: row.last_error,
 			created_at: row.created_at,
 			updated_at: row.updated_at,
+			credentials: row.credentials,
+			sync_cursor: row.sync_cursor,
 		})
 	}
 }
@@ -60,7 +70,7 @@ pub async fn list_connections(pool: &PgPool) -> Result<Vec<Connection>, sqlx::Er
 		ConnectionRow,
 		r#"
 		SELECT provider, settings, import_visibility, last_synced_at, last_sync_summary,
-			last_error, created_at, updated_at
+			last_error, created_at, updated_at, credentials, sync_cursor
 		FROM connections
 		ORDER BY provider
 		"#
@@ -80,7 +90,7 @@ pub async fn get_connection(
 		ConnectionRow,
 		r#"
 		SELECT provider, settings, import_visibility, last_synced_at, last_sync_summary,
-			last_error, created_at, updated_at
+			last_error, created_at, updated_at, credentials, sync_cursor
 		FROM connections
 		WHERE provider = $1
 		"#,
@@ -109,7 +119,7 @@ pub async fn save_connection(
 			import_visibility = EXCLUDED.import_visibility,
 			updated_at = EXCLUDED.updated_at
 		RETURNING provider, settings, import_visibility, last_synced_at, last_sync_summary,
-			last_error, created_at, updated_at
+			last_error, created_at, updated_at, credentials, sync_cursor
 		"#,
 		provider.as_str(),
 		settings,
@@ -120,6 +130,104 @@ pub async fn save_connection(
 	.await?;
 
 	Connection::try_from(row)
+}
+
+/// Creates or replaces a connection made through OAuth, with its tokens. The sync cursor is kept
+/// when the same account reconnects (same settings) and reset when a different one does.
+pub async fn save_oauth_connection(
+	pool: &PgPool,
+	provider: Provider,
+	settings: serde_json::Value,
+	credentials: serde_json::Value,
+	import_visibility: Visibility,
+) -> Result<Connection, sqlx::Error> {
+	let row = sqlx::query_as!(
+		ConnectionRow,
+		r#"
+		INSERT INTO connections (provider, settings, credentials, import_visibility, created_at,
+			updated_at)
+		VALUES ($1, $2, $3, $4, $5, $5)
+		ON CONFLICT (provider) DO UPDATE
+		SET settings = EXCLUDED.settings,
+			credentials = EXCLUDED.credentials,
+			import_visibility = EXCLUDED.import_visibility,
+			sync_cursor = CASE
+				WHEN connections.settings = EXCLUDED.settings THEN connections.sync_cursor
+			END,
+			last_error = NULL,
+			updated_at = EXCLUDED.updated_at
+		RETURNING provider, settings, import_visibility, last_synced_at, last_sync_summary,
+			last_error, created_at, updated_at, credentials, sync_cursor
+		"#,
+		provider.as_str(),
+		settings,
+		credentials,
+		import_visibility.as_str(),
+		Utc::now()
+	)
+	.fetch_one(pool)
+	.await?;
+
+	Connection::try_from(row)
+}
+
+/// Changes only the visibility given to newly imported items. `None` if not connected.
+pub async fn set_import_visibility(
+	pool: &PgPool,
+	provider: Provider,
+	import_visibility: Visibility,
+) -> Result<Option<Connection>, sqlx::Error> {
+	sqlx::query_as!(
+		ConnectionRow,
+		r#"
+		UPDATE connections
+		SET import_visibility = $2, updated_at = $3
+		WHERE provider = $1
+		RETURNING provider, settings, import_visibility, last_synced_at, last_sync_summary,
+			last_error, created_at, updated_at, credentials, sync_cursor
+		"#,
+		provider.as_str(),
+		import_visibility.as_str(),
+		Utc::now()
+	)
+	.fetch_optional(pool)
+	.await?
+	.map(Connection::try_from)
+	.transpose()
+}
+
+/// Stores refreshed OAuth tokens straight away: Strava invalidates the old refresh token as soon
+/// as it issues a new one, so losing the new one would mean reconnecting.
+pub async fn save_credentials(
+	pool: &PgPool,
+	provider: Provider,
+	credentials: serde_json::Value,
+) -> Result<(), sqlx::Error> {
+	sqlx::query!(
+		"UPDATE connections SET credentials = $2 WHERE provider = $1",
+		provider.as_str(),
+		credentials
+	)
+	.execute(pool)
+	.await?;
+
+	Ok(())
+}
+
+pub async fn save_sync_cursor(
+	pool: &PgPool,
+	provider: Provider,
+	cursor: serde_json::Value,
+) -> Result<(), sqlx::Error> {
+	sqlx::query!(
+		"UPDATE connections SET sync_cursor = $2 WHERE provider = $1",
+		provider.as_str(),
+		cursor
+	)
+	.execute(pool)
+	.await?;
+
+	Ok(())
 }
 
 /// Removes the connection. Items it imported are kept. Returns false if there was none.

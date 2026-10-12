@@ -1,9 +1,13 @@
 import { Link, NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import { isActivity } from '../items'
+import { useItems } from '../state/ItemsContext'
 import { SLOTH_URL } from '../site'
 
 export function ReadingLayout() {
 	const { admin } = useAuth()
+	const { items } = useItems()
+	const hasActivities = items.some(isActivity)
 
 	return (
 		<div className="reading">
@@ -19,6 +23,11 @@ export function ReadingLayout() {
 					<NavLink to="/films" end>
 						Films
 					</NavLink>
+					{hasActivities && (
+						<NavLink to="/activities" end>
+							Training log
+						</NavLink>
+					)}
 					{admin && <NavLink to="/admin">Admin</NavLink>}
 				</nav>
 			</header>

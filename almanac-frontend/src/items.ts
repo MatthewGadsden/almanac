@@ -1,4 +1,4 @@
-import type { FilmItem, Item, NoteItem } from './api'
+import type { ActivityData, ActivityItem, FilmItem, Item, NoteItem } from './api'
 import { plainText } from './noteHtml'
 
 const dateFormat = new Intl.DateTimeFormat('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -43,6 +43,7 @@ export function isTended(item: Item): boolean {
 
 export const isNote = (item: Item): item is NoteItem => item.kind === 'note'
 export const isFilm = (item: Item): item is FilmItem => item.kind === 'film'
+export const isActivity = (item: Item): item is ActivityItem => item.kind === 'activity'
 
 export function byTitle(a: Item, b: Item): number {
 	return a.title.localeCompare(b.title)
@@ -94,4 +95,85 @@ export function excerpt(body: string, length = 180): string {
 /** Letterboxd-style stars: 3.5 -> "★★★½". */
 export function stars(rating: number): string {
 	return '★'.repeat(Math.floor(rating)) + (rating % 1 ? '½' : '')
+}
+
+/** 10234 -> "10.2 km", 850 -> "850 m". */
+export function formatDistance(metres: number): string {
+	if (metres < 1000) {
+		return `${Math.round(metres)} m`
+	}
+	const km = metres / 1000
+	return `${km >= 100 ? Math.round(km) : km.toFixed(1)} km`
+}
+
+/** 3125 -> "52:05", 4500 -> "1:15:00". */
+export function formatDuration(seconds: number): string {
+	const total = Math.round(seconds)
+	const hours = Math.floor(total / 3600)
+	const minutes = Math.floor((total % 3600) / 60)
+	const pad = (n: number) => String(n).padStart(2, '0')
+	return hours
+		? `${hours}:${pad(minutes)}:${pad(total % 60)}`
+		: `${minutes}:${pad(total % 60)}`
+}
+
+/** "1:02:03" or "52:05" -> seconds; a lone number is minutes. Undefined if it doesn't parse. */
+export function parseDuration(text: string): number | undefined {
+	const parts = text.trim().split(':').map(Number)
+	if (!text.trim() || parts.some((part) => !Number.isFinite(part) || part < 0) || parts.length > 3) {
+		return undefined
+	}
+	if (parts.length === 1) {
+		return Math.round(parts[0] * 60)
+	}
+	return parts.reduce((total, part) => total * 60 + part, 0)
+}
+
+const FOOT_SPORTS = new Set(['Run', 'TrailRun', 'VirtualRun', 'Walk', 'Hike'])
+
+/** Pace for running and walking ("5:05 /km"), per 100 m for swims, speed for everything else. */
+export function paceOrSpeed(activity: ActivityData): string | null {
+	const { distance_m: distance, moving_time_s: time, sport } = activity
+	if (!distance || !time) {
+		return null
+	}
+	if (FOOT_SPORTS.has(sport)) {
+		return `${formatDuration(time / (distance / 1000))} /km`
+	}
+	if (sport === 'Swim') {
+		return `${formatDuration(time / (distance / 100))} /100m`
+	}
+	return `${((distance / 1000) / (time / 3600)).toFixed(1)} km/h`
+}
+
+/** "TrailRun" -> "Trail run", "WeightTraining" -> "Weight training". */
+export function sportLabel(sport: string): string {
+	const words = sport.replace(/([a-z])([A-Z])/g, '$1 $2').split(' ')
+	return words.map((word, index) => (index === 0 ? word : word.toLowerCase())).join(' ')
+}
+
+const dayTimeFormat = new Intl.DateTimeFormat('en-AU', {
+	weekday: 'short',
+	day: 'numeric',
+	month: 'short',
+	year: 'numeric',
+	hour: 'numeric',
+	minute: '2-digit',
+})
+
+/** "Tue 13 Oct 2026, 6:30 am": when an activity started, in the viewer's time zone. */
+export function formatDayTime(iso: string): string {
+	return dayTimeFormat.format(new Date(iso))
+}
+
+/** The headline numbers of an activity, skipping any it doesn't have. */
+export function activityStats(activity: ActivityData): [label: string, value: string][] {
+	const stats: [string, string | null][] = [
+		['Distance', activity.distance_m ? formatDistance(activity.distance_m) : null],
+		['Moving time', activity.moving_time_s ? formatDuration(activity.moving_time_s) : null],
+		[activity.sport.match(/Run|Walk|Hike|Swim/) ? 'Pace' : 'Speed', paceOrSpeed(activity)],
+		['Elevation', activity.elevation_gain_m ? `${Math.round(activity.elevation_gain_m)} m` : null],
+		['Avg heart rate', activity.average_heartrate ? `${Math.round(activity.average_heartrate)} bpm` : null],
+	]
+	return stats.filter((stat): stat is [string, string] => stat[1] !== null)
 }

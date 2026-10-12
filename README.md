@@ -27,7 +27,8 @@ Almanac is a [digital garden](https://garden.bradwoods.io/): a place where thing
 
 - **Notes:** HTML pages grouped by topic. Each one can carry its own `<style>` block, scoped to that note.
 - **Films:** a Letterboxd-style diary with ratings in half stars, liked and rewatch markers, posters and reviews. Films can be logged by hand or imported automatically from your Letterboxd profile.
-- **More to come:** fitness activities, books and other logs, imported from services like Letterboxd and Strava (see the [roadmap](#roadmap)).
+- **Activities:** a training log of runs, rides, swims and workouts, with distance, pace and heart rate. They can be logged by hand or imported from Strava, and Strava imports are private to you.
+- **More to come:** books, music and other logs (see the [roadmap](#roadmap)).
 
 Anyone can read the public garden. Writing happens behind an admin login at `/admin`, which nothing on the site links to. Items can also be marked **private**, so only the admin sees them.
 
@@ -81,7 +82,7 @@ bun run lint
 bun run build
 ```
 
-Settings live in `almanac-backend/configuration.yaml`, and any of them can be overridden with `APP_` environment variables (for example `APP_SESSION_KEY`, or `APP_DATABASE__PASSWORD`). The session key in the file is for local development only.
+Settings live in `almanac-backend/configuration.yaml`. Put secrets (such as a Strava client secret) in a git-ignored `configuration.local.yaml` beside it. Any setting can also be overridden with `APP_` environment variables (for example `APP_SESSION_KEY`, or `APP_DATABASE__PASSWORD`). The session key in the file is for local development only.
 
 ## Roadmap
 
@@ -89,6 +90,6 @@ Settings live in `almanac-backend/configuration.yaml`, and any of them can be ov
 - [x] Admin login, plus private items
 - [x] Items with kinds, and films as the first new kind (diary, reviews, ratings)
 - [x] Connector framework, starting with a **Letterboxd** RSS import
-- [ ] **Strava** activities (kept private)
+- [x] **Strava** activities (kept private)
 - [ ] Links between items (a note that references a film or a run)
 - [ ] More kinds and connectors (books, music, …)

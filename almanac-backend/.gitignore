@@ -1,3 +1,5 @@
 /target
 .vscode*
 .idea/*
+# Local secrets (Strava client secret, ...)
+configuration.local.yaml

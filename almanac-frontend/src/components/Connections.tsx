@@ -47,6 +47,10 @@ export function Connections() {
 						connection={connections.find((c) => c.provider === 'letterboxd') ?? null}
 						onChange={(next) => replace('letterboxd', next)}
 					/>
+					<StravaConnection
+						connection={connections.find((c) => c.provider === 'strava') ?? null}
+						onChange={(next) => replace('strava', next)}
+					/>
 				</div>
 			)}
 		</>
@@ -257,6 +261,151 @@ function ConnectionForm({
 				)}
 			</div>
 		</form>
+	)
+}
+
+function StravaConnection({
+	connection,
+	onChange,
+}: {
+	connection: Connection | null
+	onChange: (next: Connection | null) => void
+}) {
+	const { reload } = useItems()
+	const [busy, setBusy] = useState<'connecting' | 'syncing' | 'removing' | null>(null)
+	const [result, setResult] = useState<SyncSummary | null>(null)
+	const [error, setError] = useState<string | null>(null)
+
+	/** Sends the admin to Strava to authorise; Strava returns them to /admin/strava/callback. */
+	async function connect() {
+		setBusy('connecting')
+		setError(null)
+		try {
+			const { url } = await api.stravaAuthorize()
+			window.location.assign(url)
+		} catch (e) {
+			setError(api.errorMessageOf(e))
+			setBusy(null)
+		}
+	}
+
+	async function sync() {
+		setBusy('syncing')
+		setError(null)
+		setResult(null)
+		try {
+			setResult(await api.syncConnection('strava'))
+		} catch (e) {
+			setError(api.errorMessageOf(e))
+		}
+
+		const refreshed = await api.listConnections().catch(() => null)
+		const latest = refreshed?.find((c) => c.provider === 'strava')
+		if (latest) {
+			onChange(latest)
+		}
+		await reload().catch(() => undefined)
+		setBusy(null)
+	}
+
+	async function disconnect() {
+		if (!window.confirm("Disconnect Strava? Almanac's access is revoked at Strava; activities it imported stay here, private.")) {
+			return
+		}
+		setBusy('removing')
+		setError(null)
+		try {
+			await api.deleteConnection('strava')
+			onChange(null)
+			setResult(null)
+		} catch (e) {
+			setError(api.errorMessageOf(e))
+		}
+		setBusy(null)
+	}
+
+	return (
+		<section className="connection">
+			<div className="connection-header">
+				<div>
+					<h4 className="connection-name">Strava</h4>
+					<p className="connection-description">
+						Imports your activities. They're always private: Strava's API agreement only allows your Strava
+						data to be shown to you.
+					</p>
+				</div>
+				<div className="note-actions connection-actions">
+					{connection ? (
+						<>
+							<button type="button" className="pill-button" onClick={sync} disabled={busy !== null}>
+								{busy === 'syncing' ? 'Syncing…' : 'Sync now'}
+							</button>
+							<button
+								type="button"
+								className="pill-button pill-button-quiet"
+								onClick={connect}
+								disabled={busy !== null}
+							>
+								Reconnect
+							</button>
+							<button
+								type="button"
+								className="pill-button pill-button-danger"
+								onClick={disconnect}
+								disabled={busy !== null}
+							>
+								Disconnect
+							</button>
+						</>
+					) : (
+						<button type="button" className="pill-button" onClick={connect} disabled={busy !== null}>
+							{busy === 'connecting' ? 'Opening Strava…' : 'Connect with Strava'}
+						</button>
+					)}
+				</div>
+			</div>
+
+			{connection && (
+				<dl className="connection-status">
+					<div>
+						<dt>Athlete</dt>
+						<dd>
+							<a
+								href={`https://www.strava.com/athletes/${connection.settings.athlete_id}`}
+								target="_blank"
+								rel="noreferrer"
+							>
+								{connection.settings.name} ↗
+							</a>
+						</dd>
+					</div>
+					<div>
+						<dt>Imports are</dt>
+						<dd>Private</dd>
+					</div>
+					<div>
+						<dt>Last synced</dt>
+						<dd>{connection.last_synced_at ? formatDateTime(connection.last_synced_at) : 'Never'}</dd>
+					</div>
+					{connection.last_sync_summary && (
+						<div>
+							<dt>Last sync</dt>
+							<dd>{describeSummary(connection.last_sync_summary)}</dd>
+						</div>
+					)}
+				</dl>
+			)}
+
+			{result && <p className="notice connection-result">Synced: {describeSummary(result)}.</p>}
+			{(error ?? connection?.last_error) && (
+				<p className="notice notice-error">{error ?? connection?.last_error}</p>
+			)}
+			<p className="field-hint">
+				{connection
+					? "The first sync imports your whole history; after that each sync fetches what's new. Figures and start times follow Strava; your titles, topics and notes are kept."
+					: 'Needs a Strava API application: set connectors.strava.client_id and client_secret in the backend (see its README).'}
+			</p>
+		</section>
 	)
 }
 

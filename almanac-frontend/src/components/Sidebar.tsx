@@ -1,12 +1,15 @@
 import { Link, NavLink } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
-import { groupByTopic, isFilm, isNote } from '../items'
+import { groupByTopic, isActivity, isFilm, isNote } from '../items'
 import { itemPath, topicPath } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 import { REPO_URL, SLOTH_URL } from '../site'
 
 export function Sidebar() {
 	const { admin } = useAuth()
+	const { items } = useItems()
+	// Only shown when there's something to see: visitors never see private (e.g. Strava) activities
+	const hasActivities = items.some(isActivity)
 
 	return (
 		<aside className="sidebar">
@@ -28,6 +31,7 @@ export function Sidebar() {
 						Home
 					</NavLink>
 					<NavLink to="/films">Film diary</NavLink>
+					{hasActivities && <NavLink to="/activities">Training log</NavLink>}
 					{admin && <NavLink to="/admin">Admin</NavLink>}
 				</nav>
 			</div>
@@ -50,6 +54,7 @@ function TopicIndex() {
 	const { items, status } = useItems()
 	const topics = groupByTopic(items.filter(isNote))
 	const filmCount = items.filter(isFilm).length
+	const activityCount = items.filter(isActivity).length
 
 	return (
 		<nav className="topic-index" aria-label="Index">
@@ -87,6 +92,15 @@ function TopicIndex() {
 					<h3 className="index-kind">Films</h3>
 					<NavLink className="index-collection" to="/films">
 						Film diary <span className="meta">{filmCount}</span>
+					</NavLink>
+				</>
+			)}
+
+			{activityCount > 0 && (
+				<>
+					<h3 className="index-kind">Activities</h3>
+					<NavLink className="index-collection" to="/activities">
+						Training log <span className="meta">{activityCount}</span>
 					</NavLink>
 				</>
 			)}

@@ -3,7 +3,20 @@ import { useAuth } from '../auth/AuthContext'
 import { FilmFlags, FilmPoster, Rating } from '../components/Film'
 import { ItemCard } from '../components/ItemCard'
 import { LoadState } from '../components/LoadState'
-import { byRecentlyOccurred, byRecentlyUpdated, byTitle, excerpt, formatDate, isFilm, isNote, isTended, stars } from '../items'
+import {
+	byRecentlyOccurred,
+	byRecentlyUpdated,
+	byTitle,
+	excerpt,
+	formatDate,
+	formatDistance,
+	isActivity,
+	isFilm,
+	isNote,
+	isTended,
+	sportLabel,
+	stars,
+} from '../items'
 import { itemPath, KINDS, newItemPath } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 import type { FilmItem, Item } from '../api'
@@ -118,6 +131,11 @@ function RecentFilm({ film }: { film: FilmItem }) {
 function updateSubtitle(item: Item): string {
 	if (isFilm(item)) {
 		return [KINDS.film.label, item.data.rating && stars(item.data.rating)].filter(Boolean).join(' · ')
+	}
+	if (isActivity(item)) {
+		return [sportLabel(item.data.sport), item.data.distance_m && formatDistance(item.data.distance_m)]
+			.filter(Boolean)
+			.join(' · ')
 	}
 
 	return item.topic ?? KINDS[item.kind].label
