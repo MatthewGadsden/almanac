@@ -65,6 +65,10 @@ cargo test
 | `GET`    | `/items/{id}`    | Fetch a single item      | `200`   |
 | `PUT`    | `/items/{id}`    | Replace an item (admin)  | `200`   |
 | `DELETE` | `/items/{id}`    | Delete an item (admin)   | `204`   |
+| `GET`    | `/connections`   | Connected services (admin) | `200` |
+| `PUT`    | `/connections/{provider}` | Connect or update a service (admin) | `200` |
+| `DELETE` | `/connections/{provider}` | Disconnect; imported items are kept (admin) | `204` |
+| `POST`   | `/connections/{provider}/sync` | Import from the service now (admin) | `200` |
 | `POST`   | `/admin/login`   | Log in, sets the session cookie | `200` |
 | `POST`   | `/admin/logout`  | End the session          | `204`   |
 | `GET`    | `/admin/me`      | The logged-in admin      | `200`   |
@@ -90,6 +94,19 @@ Everything in the garden is an **item** with a `kind` (`note` or `film`). `POST`
 - Unknown ids return `404`. Invalid payloads return `400`.
 
 Endpoints marked (admin) return `401` without a session. `/admin/login` takes `{ "username": "...", "password": "..." }`.
+
+## Connectors
+
+Connectors import items from other services. The first is **Letterboxd**, which reads the public RSS feed of a profile (its 50 most recent diary entries and reviews):
+
+```sh
+PUT /connections/letterboxd   { "settings": { "username": "dave" }, "import_visibility": "public" }
+POST /connections/letterboxd/sync
+```
+
+- Each diary entry or review becomes a `film` item with `source: "letterboxd"`, and the entry's guid as its `external_id`. Lists are skipped.
+- Syncing again updates the same items rather than duplicating them. Letterboxd's facts are refreshed: the data fields (rating, liked, rewatch, year, poster, links) and the watched date. Title, review, topic and visibility are only set on the first import, so edits made in Almanac are kept.
+- The API re-syncs every connection on startup and every `connectors.sync_interval_minutes` (default 360; `0` turns this off). A failed sync returns `502` with the reason, which is also stored on the connection as `last_error`.
 
 ## Configuration
 

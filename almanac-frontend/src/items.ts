@@ -8,6 +8,18 @@ export function formatDate(iso: string): string {
 	return dateFormat.format(new Date(iso))
 }
 
+const dateTimeFormat = new Intl.DateTimeFormat('en-AU', {
+	day: 'numeric',
+	month: 'short',
+	year: 'numeric',
+	hour: 'numeric',
+	minute: '2-digit',
+})
+
+export function formatDateTime(iso: string): string {
+	return dateTimeFormat.format(new Date(iso))
+}
+
 export function formatMonth(iso: string): string {
 	return monthFormat.format(new Date(iso))
 }

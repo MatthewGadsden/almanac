@@ -15,6 +15,12 @@ pub struct FilmData {
 	pub liked: bool,
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub poster_url: Option<String>,
+	/// The diary entry or review on Letterboxd, for imported films.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub letterboxd_url: Option<String>,
+	/// The Movie Database id, which Letterboxd includes; useful for matching films later.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub tmdb_id: Option<i64>,
 }
 
 impl FilmData {
@@ -30,6 +36,7 @@ impl FilmData {
 
 		film.director = film.director.filter(|director| !director.trim().is_empty());
 		film.poster_url = film.poster_url.filter(|url| !url.trim().is_empty());
+		film.letterboxd_url = film.letterboxd_url.filter(|url| !url.trim().is_empty());
 
 		if film.year.is_some_and(|year| !(1870..=2100).contains(&year)) {
 			return Err("year must be between 1870 and 2100".into());
@@ -43,12 +50,24 @@ impl FilmData {
 			return Err("rating must be between 0.5 and 5 in half stars".into());
 		}
 
+		let is_web_url = |url: &str| url.starts_with("https://") || url.starts_with("http://");
 		if film
 			.poster_url
 			.as_deref()
-			.is_some_and(|url| !(url.starts_with("https://") || url.starts_with("http://")))
+			.is_some_and(|url| !is_web_url(url))
 		{
 			return Err("poster_url must be an http(s) URL".into());
+		}
+		if film
+			.letterboxd_url
+			.as_deref()
+			.is_some_and(|url| !is_web_url(url))
+		{
+			return Err("letterboxd_url must be an http(s) URL".into());
+		}
+
+		if film.tmdb_id.is_some_and(|id| id <= 0) {
+			return Err("tmdb_id must be positive".into());
 		}
 
 		Ok(film)

@@ -26,7 +26,7 @@
 Almanac is a [digital garden](https://garden.bradwoods.io/): a place where things are **planted**, **tended** over time, and occasionally **pruned**. Everything in it is an *item* of some kind:
 
 - **Notes:** HTML pages grouped by topic. Each one can carry its own `<style>` block, scoped to that note.
-- **Films:** a Letterboxd-style diary with ratings in half stars, liked and rewatch markers, posters and reviews.
+- **Films:** a Letterboxd-style diary with ratings in half stars, liked and rewatch markers, posters and reviews. Films can be logged by hand or imported automatically from your Letterboxd profile.
 - **More to come:** fitness activities, books and other logs, imported from services like Letterboxd and Strava (see the [roadmap](#roadmap)).
 
 Anyone can read the public garden. Writing happens behind an admin login at `/admin`, which nothing on the site links to. Items can also be marked **private**, so only the admin sees them.
@@ -66,7 +66,7 @@ bun install
 bun run dev                                # http://localhost:5173, with /api proxied to the backend
 ```
 
-Then open http://localhost:5173, or go to http://localhost:5173/admin to log in and plant your first note.
+Then open http://localhost:5173, or go to http://localhost:5173/admin to log in, plant your first note, or connect your Letterboxd account.
 
 ## Development
 
@@ -88,7 +88,7 @@ Settings live in `almanac-backend/configuration.yaml`, and any of them can be ov
 - [x] Notes with HTML bodies, topics and a garden-style index
 - [x] Admin login, plus private items
 - [x] Items with kinds, and films as the first new kind (diary, reviews, ratings)
-- [ ] Connector framework, starting with a **Letterboxd** RSS import
+- [x] Connector framework, starting with a **Letterboxd** RSS import
 - [ ] **Strava** activities (kept private)
 - [ ] Links between items (a note that references a film or a run)
 - [ ] More kinds and connectors (books, music, …)

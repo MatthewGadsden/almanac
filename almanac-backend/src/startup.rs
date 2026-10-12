@@ -9,9 +9,10 @@ use sqlx::PgPool;
 use std::net::TcpListener;
 
 use crate::configuration::Settings;
+use crate::connectors::ConnectorContext;
 use crate::routes::{
-	create_item, current_admin, delete_item, get_item, health_check, list_items, login, logout,
-	update_item,
+	create_item, current_admin, delete_connection, delete_item, get_item, health_check,
+	list_connections, list_items, login, logout, save_connection, sync_connection, update_item,
 };
 
 /// Session cookie settings, taken from `Settings`.
@@ -39,8 +40,10 @@ pub fn run(
 	listener: TcpListener,
 	connection_pool: PgPool,
 	session: SessionSettings,
+	connectors: ConnectorContext,
 ) -> Result<Server, std::io::Error> {
 	let db_pool = web::Data::new(connection_pool);
+	let connectors = web::Data::new(connectors);
 
 	let server = HttpServer::new(move || {
 		// The whole session lives in a signed, encrypted cookie; nothing is stored server-side
@@ -69,7 +72,15 @@ pub fn run(
 					.route("/logout", web::post().to(logout))
 					.route("/me", web::get().to(current_admin)),
 			)
+			.service(
+				web::scope("/connections")
+					.route("", web::get().to(list_connections))
+					.route("/{provider}", web::put().to(save_connection))
+					.route("/{provider}", web::delete().to(delete_connection))
+					.route("/{provider}/sync", web::post().to(sync_connection)),
+			)
 			.app_data(db_pool.clone())
+			.app_data(connectors.clone())
 	})
 	.listen(listener)?
 	.run();

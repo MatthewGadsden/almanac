@@ -1407,10 +1407,16 @@ section {
 
 .admin-notes li {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 4rem 9rem 11rem auto;
+	grid-template-columns: minmax(0, 1fr) 8.5rem 9rem 11rem auto;
 	align-items: center;
 	gap: 1rem;
 	padding: 0.65rem 1rem;
+}
+
+.admin-notes .meta {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .admin-notes li + li {
@@ -1447,4 +1453,92 @@ section {
 	.admin-notes li .meta {
 		display: none;
 	}
+}
+
+/* ---------- Connections (admin) ---------- */
+
+.connections {
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+}
+
+.connection {
+	padding: 1.1rem 1.25rem 1rem;
+}
+
+.connection + .connection {
+	border-top: 1px solid var(--border-soft);
+}
+
+.connection-header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.connection-name {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-emphasis);
+}
+
+.connection-description {
+	margin: 0.3rem 0 0;
+	font-size: 0.88rem;
+	color: var(--text-muted);
+}
+
+.connection-actions {
+	margin: 0;
+}
+
+.connection-status {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 2.25rem;
+	margin: 1rem 0 0.25rem;
+}
+
+.connection-status dt {
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--text-subtle);
+}
+
+.connection-status dd {
+	margin: 0.25rem 0 0;
+	font-size: 0.9rem;
+}
+
+.connection-status a {
+	color: var(--text-link);
+}
+
+.connection-status a:hover {
+	color: var(--text-link-hover);
+}
+
+.connection-form {
+	margin-top: 1rem;
+}
+
+.connection-result {
+	margin: 0.75rem 0 0;
+	color: var(--text);
+}
+
+.connection .notice-error {
+	margin: 0.75rem 0 0;
+}
+
+.connection .field-hint {
+	display: block;
+	margin-top: 0.75rem;
 }

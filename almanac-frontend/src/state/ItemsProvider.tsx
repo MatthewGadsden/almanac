@@ -83,9 +83,17 @@ export function ItemsProvider({ children }: { children: ReactNode }) {
 		[patchItems],
 	)
 
+	const reload = useCallback(async () => {
+		if (viewer === null) {
+			return
+		}
+		const fresh = await api.listItems()
+		setLoaded({ viewer, items: fresh, error: null })
+	}, [viewer])
+
 	const value = useMemo(
-		() => ({ items, status, error, createItem, updateItem, deleteItem }),
-		[items, status, error, createItem, updateItem, deleteItem],
+		() => ({ items, status, error, createItem, updateItem, deleteItem, reload }),
+		[items, status, error, createItem, updateItem, deleteItem, reload],
 	)
 
 	return <ItemsContext value={value}>{children}</ItemsContext>

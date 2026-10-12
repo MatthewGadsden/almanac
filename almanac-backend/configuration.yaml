@@ -10,3 +10,8 @@ database:
   username: "postgres"
   password: "postgres"
   database_name: "almanac"
+connectors:
+  # Where Letterboxd RSS feeds are fetched from (tests point this at a mock server)
+  letterboxd_base_url: "https://letterboxd.com"
+  # How often every connection is re-synced while the API runs; 0 turns automatic syncing off
+  sync_interval_minutes: 360

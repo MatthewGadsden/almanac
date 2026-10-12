@@ -12,6 +12,9 @@ export interface FilmData {
 	rewatch: boolean
 	liked: boolean
 	poster_url?: string
+	/** The entry on Letterboxd, for imported films. */
+	letterboxd_url?: string
+	tmdb_id?: number
 }
 
 interface ItemBase {
@@ -42,6 +45,28 @@ export interface ItemPayload {
 	data?: Partial<FilmData>
 	occurred_at?: string
 	visibility: Visibility
+}
+
+export type Provider = 'letterboxd'
+
+export interface SyncSummary {
+	fetched: number
+	created: number
+	updated: number
+	unchanged: number
+	/** Entries that aren't items, e.g. Letterboxd lists. */
+	skipped: number
+}
+
+export interface Connection {
+	provider: Provider
+	settings: { username: string }
+	import_visibility: Visibility
+	last_synced_at: string | null
+	last_sync_summary: SyncSummary | null
+	last_error: string | null
+	created_at: string
+	updated_at: string
 }
 
 export interface AdminUser {
@@ -117,6 +142,29 @@ export function updateItem(id: string, payload: ItemPayload): Promise<Item> {
 
 export function deleteItem(id: string): Promise<void> {
 	return request<void>(`/items/${id}`, { method: 'DELETE' })
+}
+
+export function listConnections(): Promise<Connection[]> {
+	return request<Connection[]>('/connections')
+}
+
+export function saveConnection(
+	provider: Provider,
+	settings: Connection['settings'],
+	importVisibility: Visibility,
+): Promise<Connection> {
+	return request<Connection>(`/connections/${provider}`, {
+		method: 'PUT',
+		body: JSON.stringify({ settings, import_visibility: importVisibility }),
+	})
+}
+
+export function deleteConnection(provider: Provider): Promise<void> {
+	return request<void>(`/connections/${provider}`, { method: 'DELETE' })
+}
+
+export function syncConnection(provider: Provider): Promise<SyncSummary> {
+	return request<SyncSummary>(`/connections/${provider}/sync`, { method: 'POST' })
 }
 
 /** The logged-in admin, or null when there is no session. */

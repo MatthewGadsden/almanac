@@ -93,6 +93,8 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 			...common,
 			occurred_at: fromDateInput(watchedOn),
 			data: {
+				// Keep fields the form doesn't edit, e.g. letterboxd_url and tmdb_id on imported films
+				...film,
 				year: year ? Number(year) : undefined,
 				director: director.trim() || undefined,
 				rating: rating ? Number(rating) : undefined,
@@ -117,10 +119,17 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	}
 
 	const heading = initial ? `Tend ${KINDS[kind].label.toLowerCase()}` : KINDS[kind].create
+	const imported = initial && initial.source !== 'manual' ? initial.source : null
 
 	return (
 		<section>
 			<h2 className="section-heading">{heading}</h2>
+			{imported === 'letterboxd' && (
+				<p className="notice">
+					Imported from Letterboxd. Your title, topic and review edits are kept, but the rating, liked,
+					rewatch, year, poster and watched date are refreshed from Letterboxd on every sync.
+				</p>
+			)}
 			<form className="note-form" onSubmit={handleSubmit}>
 				<div className="note-form-row">
 					<label>

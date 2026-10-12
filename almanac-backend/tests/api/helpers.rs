@@ -1,4 +1,5 @@
 use almanac::configuration::{DatabaseSettings, Settings, get_configuration};
+use almanac::connectors::ConnectorContext;
 use almanac::startup::{SessionSettings, run};
 use argon2::password_hash::SaltString;
 use argon2::password_hash::rand_core::OsRng;
@@ -8,6 +9,7 @@ use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::fmt::Display;
 use std::net::TcpListener;
 use uuid::Uuid;
+use wiremock::MockServer;
 
 pub struct TestApp {
 	pub address: String,
@@ -16,6 +18,8 @@ pub struct TestApp {
 	/// Keeps cookies, so logging in with it makes later requests authenticated.
 	pub api_client: reqwest::Client,
 	pub test_admin: TestAdmin,
+	/// Stands in for letterboxd.com; mount the RSS responses a test needs on it.
+	pub letterboxd: MockServer,
 }
 
 pub struct TestAdmin {
@@ -126,6 +130,39 @@ impl TestApp {
 			.expect("Failed to execute request.")
 	}
 
+	pub async fn get_connections(&self) -> reqwest::Response {
+		self.get("/connections").await
+	}
+
+	pub async fn put_connection(
+		&self,
+		provider: &str,
+		body: &serde_json::Value,
+	) -> reqwest::Response {
+		self.api_client
+			.put(format!("{}/connections/{}", self.address, provider))
+			.json(body)
+			.send()
+			.await
+			.expect("Failed to execute request.")
+	}
+
+	pub async fn delete_connection(&self, provider: &str) -> reqwest::Response {
+		self.api_client
+			.delete(format!("{}/connections/{}", self.address, provider))
+			.send()
+			.await
+			.expect("Failed to execute request.")
+	}
+
+	pub async fn sync_connection(&self, provider: &str) -> reqwest::Response {
+		self.api_client
+			.post(format!("{}/connections/{}/sync", self.address, provider))
+			.send()
+			.await
+			.expect("Failed to execute request.")
+	}
+
 	/// Drops the per-test database. Call at the end of every test.
 	pub async fn cleanup(&self) {
 		database_spindown(&self.config.database).await;
@@ -138,13 +175,18 @@ pub async fn spawn_app() -> TestApp {
 
 	let app_address = format!("http://127.0.0.1:{port}");
 
+	let letterboxd = MockServer::start().await;
+
 	let mut configuration = get_configuration().expect("Failed to read configuration");
 	configuration.database.database_name = Uuid::new_v4().to_string();
+	configuration.connectors.letterboxd_base_url = letterboxd.uri();
 
 	let connection_pool = configure_database(&configuration.database).await;
 
 	let session = SessionSettings::from_settings(&configuration);
-	let server = run(listener, connection_pool.clone(), session).expect("Failed to bind address");
+	let connectors = ConnectorContext::new(configuration.connectors.clone());
+	let server = run(listener, connection_pool.clone(), session, connectors)
+		.expect("Failed to bind address");
 	tokio::spawn(server);
 
 	let test_admin = TestAdmin::generate();
@@ -161,6 +203,7 @@ pub async fn spawn_app() -> TestApp {
 		config: configuration,
 		api_client,
 		test_admin,
+		letterboxd,
 	}
 }
 
