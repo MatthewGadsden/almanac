@@ -1,0 +1,12 @@
+application_port: 8080
+# Signs and encrypts the admin session cookie. Must be at least 64 characters.
+# This is a development key; override it in other environments with APP_SESSION_KEY.
+session_key: "a4af0767359d9904f05c22f6099d8f40eb9f832782ff0efa553768b8c72c3a0aaaee6453789d0910"
+# Set to true when served over HTTPS so the session cookie is marked Secure.
+secure_cookies: false
+database:
+  host: "127.0.0.1"
+  port: 5434
+  username: "postgres"
+  password: "postgres"
+  database_name: "almanac"

@@ -1,0 +1,23 @@
+
+# windows
+# ```
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools-preview
+# ```
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# linux
+# Since Rust 1.90, x86_64-unknown-linux-gnu links with the bundled rust-lld by default,
+# so no extra configuration is needed.
+
+# MacOS
+# `brew install llvm` and follow steps in `brew info llvm`
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld"]

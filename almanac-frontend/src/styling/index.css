@@ -1,0 +1,997 @@
+@import url(./tokyo_snow.css);
+
+/*
+ * Look (theme, type, cards, pills) follows ~/source/portfolio; layout follows a
+ * digital garden: browsing pages have the topic index pinned to the left with a
+ * wide content area, notes open in their own centred reading column.
+ * Reference only the semantic tokens from tokyo_snow.css, never the raw palette.
+ */
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	font-family: Inter, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+	color: var(--text);
+	background-color: var(--bg-root);
+	--font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+code {
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+	color: var(--text-emphasis);
+}
+
+:focus-visible {
+	outline: 2px solid var(--focus-ring);
+	outline-offset: 2px;
+}
+
+.page {
+	min-height: 100vh;
+	position: relative;
+	--page-pad-x: 2rem;
+	--page-pad-y: 2.5rem;
+	--layout-gap: 3rem;
+	--sidebar-width: 300px;
+	--content-max: 1500px;
+}
+
+.page-backdrop {
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	background: var(--bg-scrim), var(--bg-image) center / cover no-repeat;
+	background-color: var(--bg-root);
+}
+
+/* ---------- Garden layout: sidebar pinned to the left, content fills the rest ---------- */
+
+.garden {
+	position: relative;
+	z-index: 1;
+	padding: var(--page-pad-y) var(--page-pad-x);
+}
+
+/* Blurred, tinted panel behind the content, running from beside the sidebar to the right edge */
+.column-backdrop {
+	position: fixed;
+	inset: 0 0 0 calc(var(--page-pad-x) + var(--sidebar-width) + var(--layout-gap) / 2);
+	pointer-events: none;
+	backdrop-filter: var(--column-blur);
+	background: var(--column-tint);
+}
+
+/* ---------- Sidebar ---------- */
+
+.sidebar {
+	width: var(--sidebar-width);
+	position: fixed;
+	left: var(--page-pad-x);
+	top: var(--page-pad-y);
+	height: calc(100vh - 2 * var(--page-pad-y));
+	display: flex;
+	flex-direction: column;
+}
+
+.sidebar h1 {
+	margin: 0;
+	font-size: 2.5rem;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	color: var(--text-strong);
+}
+
+.role {
+	margin: 0.65rem 0 0;
+	font-size: 1rem;
+	color: var(--text-emphasis);
+	font-weight: 500;
+}
+
+.tagline {
+	margin: 0.85rem 0 0;
+	max-width: 300px;
+	color: var(--text-muted);
+	font-size: 0.98rem;
+	line-height: 1.55;
+}
+
+.sidebar-sloth {
+	width: 84px;
+	height: 84px;
+	object-fit: contain;
+	border-radius: 12px;
+	border: 1px solid var(--border-soft);
+	background: var(--bg-surface);
+	backdrop-filter: var(--surface-blur);
+	padding: 0.35rem;
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.sidebar-content {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding-top: 1rem;
+}
+
+.sidebar-subheader {
+	display: flex;
+	flex-direction: row;
+	gap: 1rem;
+	align-items: center;
+}
+
+.section-nav {
+	margin-top: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: fit-content;
+}
+
+.section-nav a {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	font-size: 0.72rem;
+	color: var(--text-link);
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	transition: color 0.25s ease, transform 0.25s ease;
+}
+
+.section-nav a::before {
+	content: "";
+	width: 2rem;
+	height: 1px;
+	background: var(--border-link);
+	transition: width 0.25s ease, background 0.25s ease;
+}
+
+.section-nav a:hover,
+.section-nav a.active {
+	color: var(--text-link-hover);
+	transform: translateX(3px);
+}
+
+.section-nav a:hover::before,
+.section-nav a.active::before {
+	width: 2.75rem;
+	background: var(--border-link-hover);
+}
+
+/* Garden-style topic index: topics with their notes hanging off a tree line */
+.topic-index {
+	margin-top: 2rem;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 0.5rem;
+	scrollbar-width: thin;
+}
+
+.index-heading {
+	margin: 0 0 0.9rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	color: var(--text-subtle);
+}
+
+.index-empty {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+}
+
+.index-tree,
+.index-tree ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.index-tree > li + li {
+	margin-top: 0.9rem;
+}
+
+.index-topic {
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.04em;
+	color: var(--text-heading);
+	transition: color 0.2s ease;
+}
+
+.index-tree ul {
+	margin: 0.35rem 0 0 0.3rem;
+	border-left: 1px solid var(--border-link);
+}
+
+.index-note {
+	position: relative;
+	display: block;
+	padding: 0.2rem 0 0.2rem 1rem;
+	font-size: 0.9rem;
+	color: var(--text-muted);
+	transition: color 0.2s ease;
+}
+
+.index-note::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	width: 0.65rem;
+	height: 1px;
+	background: var(--border-link);
+}
+
+.index-topic:hover,
+.index-note:hover {
+	color: var(--text-link-hover);
+}
+
+.index-topic.active,
+.index-note.active {
+	color: var(--text-emphasis);
+}
+
+.index-note.active::before {
+	background: var(--border-link-hover);
+}
+
+.socials {
+	margin-top: 1.5rem;
+	display: flex;
+	gap: 0.8rem;
+}
+
+.socials a {
+	width: 1.9rem;
+	height: 1.9rem;
+	border: 1px solid var(--border-social);
+	border-radius: 999px;
+	color: var(--text-link);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+	background: var(--bg-surface);
+}
+
+.social-icon {
+	width: 0.9rem;
+	height: 0.9rem;
+	fill: currentColor;
+}
+
+.socials a:hover {
+	border-color: var(--border-social-hover);
+	color: var(--text-link-hover);
+	transform: translateY(-1px);
+}
+
+/* ---------- Content column ---------- */
+
+.content {
+	position: relative;
+	margin-left: calc(var(--sidebar-width) + var(--layout-gap));
+	max-width: var(--content-max);
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding-top: 0.5rem;
+}
+
+section {
+	color: var(--text);
+	padding-bottom: 3rem;
+}
+
+.section-heading {
+	margin: 0 0 1.25rem;
+	font-family: var(--font-mono);
+	font-size: 1.17rem;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--text-heading);
+	text-decoration: underline;
+	text-decoration-color: var(--border-heading);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.4rem;
+}
+
+.page-title {
+	margin: 0.9rem 0 1.25rem;
+	font-size: 2rem;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	color: var(--text-strong);
+}
+
+.notice {
+	margin: 0 0 1rem;
+	font-size: 0.95rem;
+	line-height: 1.65;
+	color: var(--text-muted);
+}
+
+.notice-error {
+	color: var(--text-danger);
+	border-left: 2px solid var(--border-danger);
+	padding-left: 0.75rem;
+}
+
+.meta {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.06em;
+	color: var(--text-subtle);
+}
+
+.status-badge {
+	padding: 0.12rem 0.5rem;
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-badge);
+	border: 1px solid var(--border-badge);
+	border-radius: 999px;
+	white-space: nowrap;
+}
+
+/* Latest updates: a row of tiles across the full content width */
+.update-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+	gap: 0.85rem;
+}
+
+.update-item {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	padding: 0.85rem 1rem;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.update-item:hover {
+	border-color: var(--border-hover);
+	background: var(--bg-surface-hover);
+}
+
+.update-item-meta {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.update-item-title {
+	font-weight: 500;
+	color: var(--text-emphasis);
+	overflow-wrap: anywhere;
+}
+
+/* Note cards */
+.note-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+	gap: 0.95rem;
+}
+
+.note-card {
+	border: 1px solid var(--border-soft-strong);
+	border-radius: 5px;
+	padding: 1rem 1.05rem;
+	background: var(--bg-surface);
+	backdrop-filter: var(--surface-blur);
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.note-card:hover {
+	border-color: var(--border-hover);
+	background: var(--bg-surface-hover);
+}
+
+.note-card h3 {
+	margin: 0;
+	font-size: 1rem;
+	color: var(--text-emphasis);
+}
+
+.note-card h3 a {
+	transition: color 0.2s ease;
+}
+
+.note-card h3 a:hover {
+	color: var(--text-link-hover);
+}
+
+.note-card .meta {
+	margin-top: 0.4rem;
+}
+
+.note-card p {
+	margin: 0.6rem 0 0;
+	font-size: 0.91rem;
+	line-height: 1.6;
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+/* Note page: the body takes the wide main column, details and navigation sit in a sticky aside */
+.note {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 19rem;
+	grid-template-areas:
+		"header header"
+		"main aside";
+	gap: 0 3.5rem;
+}
+
+.note-header {
+	grid-area: header;
+	margin-bottom: 1.75rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px solid var(--border-soft);
+}
+
+.note-header .page-title {
+	margin-bottom: 0;
+	font-size: 2.4rem;
+}
+
+.note-main {
+	grid-area: main;
+	min-width: 0;
+}
+
+.note-aside {
+	grid-area: aside;
+	align-self: start;
+	position: sticky;
+	top: 1.5rem;
+}
+
+.note-aside .note-meta {
+	margin-bottom: 0;
+}
+
+.note-aside .note-actions {
+	margin: 1.25rem 0 0;
+}
+
+.aside-heading {
+	margin: 0 0 0.75rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	color: var(--text-subtle);
+}
+.breadcrumbs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	letter-spacing: 0.06em;
+	color: var(--text-subtle);
+}
+
+.breadcrumbs a {
+	color: var(--text-link);
+	transition: color 0.2s ease;
+}
+
+.breadcrumbs a:hover {
+	color: var(--text-link-hover);
+}
+
+.note-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 2rem;
+	margin: 0 0 2rem;
+	padding: 0.85rem 1.05rem;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+}
+
+.note-meta dt {
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--text-subtle);
+}
+
+.note-meta dd {
+	margin: 0.25rem 0 0;
+	font-size: 0.92rem;
+	color: var(--text);
+}
+
+.note-meta dd a {
+	color: var(--text-link);
+}
+
+.note-meta dd a:hover {
+	color: var(--text-link-hover);
+}
+
+.note-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	margin: 1.5rem 0 1rem;
+}
+
+.where-next {
+	margin-top: 2rem;
+}
+
+.where-next-list {
+	list-style: none;
+	margin: 0;
+	padding: 0 0 0 0.3rem;
+	border-left: 1px solid var(--border-link);
+}
+
+.where-next-list li {
+	position: relative;
+	padding: 0.3rem 0 0.3rem 1rem;
+	font-size: 0.95rem;
+}
+
+.where-next-list li::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 50%;
+	width: 0.65rem;
+	height: 1px;
+	background: var(--border-link);
+}
+
+.where-next-list a {
+	color: var(--text-link);
+	transition: color 0.2s ease;
+}
+
+.where-next-list a:hover {
+	color: var(--text-link-hover);
+}
+
+.where-next-current {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	color: var(--text-emphasis);
+}
+
+/* Buttons (styled like the portfolio's "See more projects" pill) */
+.pill-button {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5rem 1rem;
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	letter-spacing: 0.04em;
+	color: var(--text-link);
+	background: var(--bg-surface);
+	backdrop-filter: var(--surface-blur);
+	border: 1px solid var(--border-pill);
+	border-radius: 999px;
+	cursor: pointer;
+	transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.pill-button:hover {
+	color: var(--text-link-hover);
+	border-color: var(--border-hover);
+	background: var(--bg-surface-hover);
+}
+
+.pill-button:disabled {
+	opacity: 0.6;
+	cursor: progress;
+}
+
+.pill-button-quiet {
+	border-color: var(--border-soft);
+	color: var(--text-muted);
+}
+
+.pill-button-danger {
+	color: var(--text-danger);
+	border-color: var(--border-danger);
+}
+
+.pill-button-danger:hover {
+	color: var(--text-danger);
+	border-color: var(--border-danger);
+}
+
+/* Form */
+.note-form {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+}
+
+.note-form label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+}
+
+.note-form label > span,
+.note-preview > span {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--text-subtle);
+}
+
+.note-form input,
+.note-form textarea {
+	width: 100%;
+	padding: 0.65rem 0.8rem;
+	font: inherit;
+	font-size: 0.95rem;
+	line-height: 1.6;
+	color: var(--text);
+	background: var(--bg-input);
+	backdrop-filter: var(--surface-blur);
+	border: 1px solid var(--border-soft-strong);
+	border-radius: 5px;
+	transition: border-color 0.2s ease;
+}
+
+.note-form textarea {
+	resize: vertical;
+	min-height: 12rem;
+}
+
+.note-form input:hover,
+.note-form textarea:hover,
+.note-form input:focus,
+.note-form textarea:focus {
+	border-color: var(--border-hover);
+}
+
+.note-form input:focus,
+.note-form textarea:focus {
+	outline: none;
+}
+
+.note-form-row,
+.note-editor {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1.25rem;
+}
+
+.note-form .code-input {
+	min-height: 34rem;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	line-height: 1.6;
+	tab-size: 2;
+}
+
+.field-hint {
+	font-size: 0.8rem;
+	line-height: 1.5;
+	color: var(--text-subtle);
+}
+
+.note-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-width: 0;
+}
+
+.note-preview-panel {
+	min-height: 34rem;
+	padding: 1.25rem 1.4rem;
+	overflow: auto;
+	border: 1px dashed var(--border-soft-strong);
+	border-radius: 5px;
+	background: var(--bg-surface);
+}
+
+.note-form .note-actions {
+	margin-top: 0.25rem;
+}
+
+/* ---------- Reading layout: note pages and forms ---------- */
+
+.reading {
+	position: relative;
+	z-index: 1;
+	padding: 1.5rem var(--page-pad-x) 4rem;
+}
+
+.reading-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1.5rem;
+	max-width: var(--content-max);
+	margin: 0 auto 2.5rem;
+}
+
+.brand {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.75rem;
+	font-size: 1.35rem;
+	font-weight: 700;
+	letter-spacing: -0.02em;
+	color: var(--text-strong);
+}
+
+.brand-sloth {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	border-radius: 8px;
+	border: 1px solid var(--border-soft);
+	background: var(--bg-surface);
+	padding: 0.2rem;
+}
+
+.reading-nav {
+	display: flex;
+	gap: 1.75rem;
+}
+
+.reading-nav a {
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+	font-size: 0.72rem;
+	color: var(--text-link);
+	transition: color 0.2s ease;
+}
+
+.reading-nav a:hover,
+.reading-nav a.active {
+	color: var(--text-link-hover);
+}
+
+.reading-column {
+	max-width: var(--content-max);
+	margin: 0 auto;
+	padding: 2.5rem 3rem 1rem;
+	border: 1px solid var(--border-soft);
+	border-radius: 8px;
+	background: var(--column-tint);
+	backdrop-filter: var(--column-blur);
+}
+
+.reading-column section:last-child {
+	padding-bottom: 1.5rem;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 960px) {
+	.page {
+		--page-pad-x: 1.25rem;
+		--layout-gap: 2rem;
+		--sidebar-width: 250px;
+	}
+}
+
+@media (max-width: 820px) {
+	.page {
+		--page-pad-x: 1.1rem;
+		--page-pad-y: 2rem;
+	}
+
+	.column-backdrop {
+		display: none;
+	}
+
+	.sidebar {
+		position: relative;
+		top: auto;
+		left: auto;
+		width: 100%;
+		height: auto;
+	}
+
+	.topic-index {
+		overflow: visible;
+	}
+
+	.content {
+		margin-left: 0;
+		gap: var(--band-gap);
+		padding-top: var(--band-gap);
+	}
+
+	/*
+	 * In place of the fixed desktop panel, the sidebar and each section get
+	 * their own full-width blurred band. The bands scroll with the content and
+	 * leave gaps between them where the wallpaper shows through.
+	 */
+	.page {
+		--band-gap: 2.5rem;
+		--band-pad-y: 1.5rem;
+	}
+
+	.sidebar,
+	.content > section {
+		position: relative;
+		padding: var(--band-pad-y) 0;
+	}
+
+	.sidebar-content {
+		padding-top: 0;
+	}
+
+	.sidebar::before,
+	.content > section::before {
+		content: "";
+		position: absolute;
+		inset: 0 calc(-1 * var(--page-pad-x));
+		z-index: -1;
+		pointer-events: none;
+		backdrop-filter: var(--column-blur);
+		background: var(--column-tint);
+	}
+
+	/* The first and last bands run through the page padding to the screen edges */
+	.sidebar::before {
+		top: calc(-1 * var(--page-pad-y));
+	}
+
+	.content > :last-child::before {
+		bottom: calc(-1 * var(--page-pad-y));
+	}
+
+	.reading-column {
+		padding: 1.75rem 1.25rem 0.5rem;
+	}
+
+	.note {
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-areas:
+			"header"
+			"main"
+			"aside";
+	}
+
+	.note-header .page-title {
+		font-size: 1.9rem;
+	}
+
+	.note-aside {
+		position: static;
+		margin-top: 2.5rem;
+	}
+
+	.note-form-row,
+	.note-editor {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.note-form .code-input,
+	.note-preview-panel {
+		min-height: 18rem;
+	}
+
+	.reading-header {
+		flex-wrap: wrap;
+		margin-bottom: 1.5rem;
+	}
+}
+
+/* ---------- Admin ---------- */
+
+.login {
+	max-width: 26rem;
+	margin: 0 auto;
+}
+
+.admin-name {
+	color: var(--text-emphasis);
+	font-weight: 500;
+}
+
+.admin-notes-heading {
+	margin-top: 2.5rem;
+}
+
+.admin-notes {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+}
+
+.admin-notes li {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 10rem 11rem auto;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.65rem 1rem;
+}
+
+.admin-notes li + li {
+	border-top: 1px solid var(--border-soft);
+}
+
+.admin-notes a {
+	color: var(--text-emphasis);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-notes a:hover,
+.admin-notes .admin-edit {
+	color: var(--text-link);
+}
+
+.admin-notes .admin-edit {
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+}
+
+.admin-notes .admin-edit:hover {
+	color: var(--text-link-hover);
+}
+
+@media (max-width: 820px) {
+	.admin-notes li {
+		grid-template-columns: minmax(0, 1fr) auto;
+	}
+
+	.admin-notes li .meta {
+		display: none;
+	}
+}

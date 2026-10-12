@@ -1,0 +1,177 @@
+# The name of your workflow. GitHub displays the names of your workflows on your repository's "Actions" tab
+name: CI
+
+# To automatically trigger the workflow
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_VERSION: 0.8.6
+  SQLX_FEATURES: "rustls,postgres"
+
+# The backend lives in its own folder, so run every `run:` step from there
+defaults:
+  run:
+    working-directory: almanac-backend
+
+# A workflow run is made up of one or more jobs, which run in parallel by default
+# Each job runs in a runner environment specified by runs-on
+jobs:
+  # Unique identifier of our job (`job_id`)
+  test:
+    # Sets the name `Test` for the job, which is displayed in the GitHub UI
+    name: Test
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Service containers to run with the `test` container job
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image
+        image: postgres:17
+        # Environment variables scoped only for the `postgres` element
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        # When you map ports using the ports keyword, GitHub uses the --publish command to publish the container’s ports to the Docker host
+        # Opens tcp port 5434 on the host and maps it to 5432 in the service container
+        ports:
+          - 5434:5432
+    steps:
+        # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+       # This GitHub Action installs a Rust toolchain using rustup. It is designed for one-line concise usage and good defaults.
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # A GitHub Action that implements smart caching for rust/cargo projects with sensible defaults.
+      - name: Rust Cache Action
+        uses: Swatinem/rust-cache@v2
+        with:
+          # An additional cache key that is added alongside the automatic `job`-based cache key and can be used to further differentiate jobs. default: empty
+          key: sqlx-${{ env.SQLX_VERSION }}
+          workspaces: almanac-backend -> target
+
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install postgresql-client -y
+
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+
+      - name: Run tests
+        run: cargo test
+
+  # `fmt` container job
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # Specific to dtolnay/rust-toolchain: Comma-separated string of additional components to install
+          components: rustfmt
+      - name: Enforce formatting
+        run: cargo fmt --check
+
+  # `clippy` container job
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5434:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sqlx-${{ env.SQLX_VERSION }}
+          workspaces: almanac-backend -> target
+      - name: Install sqlx-cli
+        run:
+          cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install postgresql-client -y
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Linting
+        run: cargo clippy --all-targets -- -D warnings
+
+  # `coverage` container job
+  coverage:
+    name: Code coverage
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5434:5432
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install postgresql-client -y
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: sqlx-${{ env.SQLX_VERSION }}
+          workspaces: almanac-backend -> target
+      - name: Install sqlx-cli
+        run:
+          cargo install sqlx-cli
+          --version=${{ env.SQLX_VERSION }}
+          --features ${{ env.SQLX_FEATURES }}
+          --no-default-features
+          --locked
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Generate code coverage
+        run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
+
+  # `frontend` container job: lint and type-check/build almanac-frontend
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: almanac-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Lint
+        run: bun run lint
+      - name: Build
+        run: bun run build

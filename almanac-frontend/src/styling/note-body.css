@@ -1,0 +1,196 @@
+/*
+ * Base typography for note bodies. Loaded into each note's shadow root (see NoteBody.tsx),
+ * so it only styles note content. A note's own <style> comes after this and can override any
+ * of it, including :host. Theme tokens from tokyo_snow.css inherit through the shadow boundary.
+ */
+
+:host {
+	display: block;
+}
+
+.note-root {
+	font-size: 1rem;
+	line-height: 1.75;
+	color: var(--text);
+	overflow-wrap: anywhere;
+}
+
+.note-root > :first-child {
+	margin-top: 0;
+}
+
+.note-root > :last-child {
+	margin-bottom: 0;
+}
+
+p {
+	margin: 0 0 1rem;
+}
+
+p.plain {
+	white-space: pre-wrap;
+}
+
+h1,
+h2,
+h3,
+h4 {
+	margin: 2.25rem 0 0.75rem;
+	font-family: var(--font-mono);
+	font-weight: 500;
+	line-height: 1.3;
+	letter-spacing: 0.01em;
+	color: var(--text-heading);
+}
+
+h1 {
+	font-size: 1.6rem;
+}
+
+h2 {
+	font-size: 1.35rem;
+}
+
+h3 {
+	font-size: 1.15rem;
+}
+
+h4 {
+	font-size: 1rem;
+}
+
+a {
+	color: var(--text-link);
+	text-decoration: underline;
+	text-decoration-color: var(--border-link);
+	text-underline-offset: 3px;
+	transition: color 0.2s ease;
+}
+
+a:hover {
+	color: var(--text-link-hover);
+	text-decoration-color: var(--border-link-hover);
+}
+
+strong,
+b {
+	color: var(--text-strong);
+}
+
+ul,
+ol {
+	margin: 0 0 1rem;
+	padding-left: 1.4rem;
+}
+
+li + li {
+	margin-top: 0.3rem;
+}
+
+li::marker {
+	color: var(--text-subtle);
+}
+
+blockquote {
+	margin: 0 0 1rem;
+	padding: 0.25rem 0 0.25rem 1rem;
+	border-left: 2px solid var(--border-heading);
+	color: var(--text-muted);
+}
+
+code {
+	font-family: var(--font-mono);
+	font-size: 0.85em;
+	color: var(--text-emphasis);
+	background: var(--bg-pill);
+	padding: 0.1em 0.35em;
+	border-radius: 4px;
+}
+
+pre {
+	margin: 0 0 1rem;
+	padding: 1rem 1.1rem;
+	overflow-x: auto;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	line-height: 1.55;
+	background: var(--bg-surface-strong);
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+}
+
+pre code {
+	padding: 0;
+	font-size: inherit;
+	color: var(--text);
+	background: none;
+}
+
+img,
+video,
+svg {
+	max-width: 100%;
+	height: auto;
+}
+
+img,
+video {
+	border-radius: 5px;
+}
+
+figure {
+	margin: 0 0 1rem;
+}
+
+figcaption {
+	margin-top: 0.4rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	color: var(--text-subtle);
+}
+
+hr {
+	margin: 2rem 0;
+	border: 0;
+	border-top: 1px solid var(--border-soft);
+}
+
+table {
+	width: 100%;
+	margin: 0 0 1rem;
+	border-collapse: collapse;
+	font-size: 0.92rem;
+}
+
+th,
+td {
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	border: 1px solid var(--border-soft);
+}
+
+th {
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--text-subtle);
+	background: var(--bg-surface-strong);
+}
+
+details {
+	margin: 0 0 1rem;
+}
+
+summary {
+	cursor: pointer;
+	color: var(--text-link);
+}
+
+mark {
+	color: var(--bg-root);
+	background: var(--text-emphasis);
+	padding: 0 0.2em;
+	border-radius: 2px;
+}

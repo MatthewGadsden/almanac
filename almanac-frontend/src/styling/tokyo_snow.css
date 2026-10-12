@@ -1,0 +1,68 @@
+/*
+ * tokyo-snow — palette from mgadsden-configs/tokyo-snow.theme, sampled from
+ * the snowy Tokyo alley wallpaper: warm vending-machine lights (brick -> gold),
+ * the green-tinted snowy glow (sage -> pine), the snow, and the pavement.
+ */
+:root {
+	color-scheme: dark;
+
+	/* Palette */
+	--brick: #824a3e;
+	--neon: #b85940;
+	--ember: #cb7d50;
+	--amber: #d19e63;
+	--gold: #d5b67b;
+	--sage: #b9bc8f;
+	--moss: #a2aa7f;
+	--pine: #849675;
+	--snow: #ebe0b3;
+	--dim: #797562;
+
+	/* Background tokens */
+	--bg-root: #14120f;
+	--bg-image: url(../assets/tokyo-snow-alley.jpg);
+	--bg-scrim: linear-gradient(90deg,
+			rgba(14, 12, 10, 0.5) 0%,
+			rgba(14, 12, 10, 0.68) 42%,
+			rgba(14, 12, 10, 0.8) 100%);
+	--bg-surface: rgba(22, 20, 16, 0.62);
+	--bg-surface-strong: rgba(22, 20, 16, 0.7);
+	--bg-surface-hover: rgba(34, 30, 23, 0.8);
+	--surface-blur: blur(10px);
+	--column-blur: blur(6px);
+	--column-tint: rgba(235, 224, 179, 0.06);
+
+	/* Text tokens */
+	--text: var(--snow);
+	--text-muted: var(--sage);
+	--text-strong: var(--snow);
+	--text-emphasis: var(--gold);
+	--text-subtle: var(--moss);
+	--text-heading: var(--amber);
+	--text-link: var(--amber);
+	--text-link-hover: var(--gold);
+	--text-company: var(--ember);
+	--text-pill: var(--amber);
+	--text-badge: var(--sage);
+	--bg-pill: rgba(203, 125, 80, 0.14);
+
+	/* Border tokens */
+	--border-soft: rgba(121, 117, 98, 0.45);
+	--border-soft-strong: rgba(121, 117, 98, 0.55);
+	--border-hover: var(--ember);
+	--border-heading: var(--neon);
+	--border-link: var(--dim);
+	--border-link-hover: var(--amber);
+	--border-pill: rgba(203, 125, 80, 0.5);
+	--border-badge: rgba(185, 188, 143, 0.45);
+	--border-social: var(--dim);
+	--border-social-hover: var(--amber);
+
+	--accent: var(--ember);
+
+	/* Almanac additions: forms, errors and focus */
+	--bg-input: rgba(14, 12, 10, 0.55);
+	--text-danger: var(--ember);
+	--border-danger: var(--neon);
+	--focus-ring: var(--amber);
+}
