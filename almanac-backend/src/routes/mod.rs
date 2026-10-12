@@ -1,7 +1,7 @@
 mod admin;
-mod entries;
 mod health_check;
+mod items;
 
 pub use admin::*;
-pub use entries::*;
 pub use health_check::*;
+pub use items::*;

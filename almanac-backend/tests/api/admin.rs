@@ -91,48 +91,50 @@ async fn logout_ends_the_session() {
 }
 
 #[tokio::test]
-async fn entry_writes_return_401_without_a_session() {
+async fn item_writes_return_401_without_a_session() {
 	// Arrange
 	let app = spawn_app().await;
-	let payload = json!({ "title": "Equinox", "topic": "Seasons", "body": "Equal day." });
+	let payload =
+		json!({ "kind": "note", "title": "Equinox", "topic": "Seasons", "body": "Equal day." });
 	let id = Uuid::new_v4();
 
 	// Act
-	let created = app.post_entry(&payload).await;
-	let updated = app.put_entry(id, &payload).await;
-	let deleted = app.delete_entry(id).await;
+	let created = app.post_item(&payload).await;
+	let updated = app.put_item(id, &payload).await;
+	let deleted = app.delete_item(id).await;
 
 	// Assert
 	assert_eq!(401, created.status().as_u16(), "create");
 	assert_eq!(401, updated.status().as_u16(), "update");
 	assert_eq!(401, deleted.status().as_u16(), "delete");
 
-	let count = sqlx::query_scalar!("SELECT COUNT(*) FROM entries")
+	let count = sqlx::query_scalar!("SELECT COUNT(*) FROM items")
 		.fetch_one(&app.db_pool)
 		.await
-		.expect("Failed to count entries.");
+		.expect("Failed to count items.");
 	assert_eq!(count, Some(0));
 
 	app.cleanup().await;
 }
 
 #[tokio::test]
-async fn entries_can_be_read_without_a_session() {
+async fn items_can_be_read_without_a_session() {
 	// Arrange
 	let app = spawn_app().await;
 	app.login_admin().await;
-	let payload = json!({ "title": "Equinox", "topic": "Seasons", "body": "Equal day." });
+	let payload =
+		json!({ "kind": "note", "title": "Equinox", "topic": "Seasons", "body": "Equal day." });
 	let created: serde_json::Value = app
-		.post_entry(&payload)
+		.post_item(&payload)
 		.await
 		.json()
 		.await
-		.expect("Failed to parse entry.");
+		.expect("Failed to parse item.");
 	app.post_logout().await;
 
 	// Act
-	let list = app.get_entries().await;
-	let single = app.get_entry(created["id"].as_str().unwrap()).await;
+	let list = app.get_items().await;
+	let single = app.get_item(created["id"].as_str().unwrap()).await;
 
 	// Assert
 	assert_eq!(200, list.status().as_u16());

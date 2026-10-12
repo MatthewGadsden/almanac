@@ -1,7 +1,8 @@
 import { Link, NavLink } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
-import { useEntries } from '../entries/EntriesContext'
-import { groupByTopic, notePath, topicPath } from '../notes'
+import { groupByTopic, isFilm, isNote } from '../items'
+import { itemPath, topicPath } from '../kinds'
+import { useItems } from '../state/ItemsContext'
 import { REPO_URL, SLOTH_URL } from '../site'
 
 export function Sidebar() {
@@ -24,9 +25,9 @@ export function Sidebar() {
 				<p className="tagline">Notes that are planted, tended and pruned over time.</p>
 				<nav className="section-nav" aria-label="Pages">
 					<NavLink to="/" end>
-						All notes
+						Home
 					</NavLink>
-					{admin && <NavLink to="/notes/new">Plant a note</NavLink>}
+					<NavLink to="/films">Film diary</NavLink>
 					{admin && <NavLink to="/admin">Admin</NavLink>}
 				</nav>
 			</div>
@@ -44,36 +45,50 @@ export function Sidebar() {
 	)
 }
 
-/** Garden-style tree of every note, grouped by topic. */
+/** Garden-style tree: notes grouped by topic, then the other kinds' collections. */
 function TopicIndex() {
-	const { entries, status } = useEntries()
-	const topics = groupByTopic(entries)
+	const { items, status } = useItems()
+	const topics = groupByTopic(items.filter(isNote))
+	const filmCount = items.filter(isFilm).length
 
 	return (
-		<nav className="topic-index" aria-label="Topic index">
+		<nav className="topic-index" aria-label="Index">
 			<h2 className="index-heading">Index</h2>
 			{status === 'loading' && <p className="index-empty">Loading…</p>}
 			{status === 'error' && <p className="index-empty">Index unavailable.</p>}
-			{status === 'ready' && topics.length === 0 && <p className="index-empty">Nothing planted yet.</p>}
+			{status === 'ready' && items.length === 0 && <p className="index-empty">Nothing planted yet.</p>}
+
 			{topics.length > 0 && (
-				<ul className="index-tree">
-					{topics.map(([topic, notes]) => (
-						<li key={topic}>
-							<NavLink className="index-topic" to={topicPath(topic)}>
-								{topic}
-							</NavLink>
-							<ul>
-								{notes.map((note) => (
-									<li key={note.id}>
-										<NavLink className="index-note" to={notePath(note.id)}>
-											{note.title}
-										</NavLink>
-									</li>
-								))}
-							</ul>
-						</li>
-					))}
-				</ul>
+				<>
+					<h3 className="index-kind">Notes</h3>
+					<ul className="index-tree">
+						{topics.map(([topic, notes]) => (
+							<li key={topic}>
+								<NavLink className="index-topic" to={topicPath(topic)}>
+									{topic}
+								</NavLink>
+								<ul>
+									{notes.map((note) => (
+										<li key={note.id}>
+											<NavLink className="index-note" to={itemPath(note)}>
+												{note.title}
+											</NavLink>
+										</li>
+									))}
+								</ul>
+							</li>
+						))}
+					</ul>
+				</>
+			)}
+
+			{filmCount > 0 && (
+				<>
+					<h3 className="index-kind">Films</h3>
+					<NavLink className="index-collection" to="/films">
+						Film diary <span className="meta">{filmCount}</span>
+					</NavLink>
+				</>
 			)}
 		</nav>
 	)

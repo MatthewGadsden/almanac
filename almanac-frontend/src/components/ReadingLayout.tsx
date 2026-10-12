@@ -16,7 +16,9 @@ export function ReadingLayout() {
 					<NavLink to="/" end>
 						Index
 					</NavLink>
-					{admin && <NavLink to="/notes/new">Plant a note</NavLink>}
+					<NavLink to="/films" end>
+						Films
+					</NavLink>
 					{admin && <NavLink to="/admin">Admin</NavLink>}
 				</nav>
 			</header>

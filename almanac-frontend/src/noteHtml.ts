@@ -35,6 +35,8 @@ export function renderNoteHtml(body: string): string {
 	return DOMPurify.sanitize(body, { ADD_TAGS: ['style'], FORCE_BODY: true })
 }
 
+const BLOCK_ELEMENTS = 'p, div, h1, h2, h3, h4, h5, h6, li, blockquote, pre, figcaption, tr, td, th, br, hr'
+
 /** The readable text of a note body, for excerpts. */
 export function plainText(body: string): string {
 	if (!looksLikeHtml(body)) {
@@ -44,5 +46,7 @@ export function plainText(body: string): string {
 	// DOMParser documents are inert: no scripts run and no images load
 	const doc = new DOMParser().parseFromString(body, 'text/html')
 	doc.querySelectorAll('style, script').forEach((element) => element.remove())
+	// textContent runs blocks together ("end.Next heading"), so separate them first
+	doc.body.querySelectorAll(BLOCK_ELEMENTS).forEach((element) => element.append(' '))
 	return doc.body.textContent ?? ''
 }
