@@ -12,7 +12,8 @@ use crate::configuration::Settings;
 use crate::connectors::ConnectorContext;
 use crate::routes::{
 	create_item, current_admin, delete_connection, delete_item, get_item, health_check,
-	list_connections, list_items, login, logout, save_connection, sync_connection, update_item,
+	list_connections, list_items, login, logout, save_connection, strava_authorize,
+	strava_callback, sync_connection, update_item,
 };
 
 /// Session cookie settings, taken from `Settings`.
@@ -75,6 +76,8 @@ pub fn run(
 			.service(
 				web::scope("/connections")
 					.route("", web::get().to(list_connections))
+					.route("/strava/authorize", web::get().to(strava_authorize))
+					.route("/strava/callback", web::post().to(strava_callback))
 					.route("/{provider}", web::put().to(save_connection))
 					.route("/{provider}", web::delete().to(delete_connection))
 					.route("/{provider}/sync", web::post().to(sync_connection)),

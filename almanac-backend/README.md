@@ -69,11 +69,13 @@ cargo test
 | `PUT`    | `/connections/{provider}` | Connect or update a service (admin) | `200` |
 | `DELETE` | `/connections/{provider}` | Disconnect; imported items are kept (admin) | `204` |
 | `POST`   | `/connections/{provider}/sync` | Import from the service now (admin) | `200` |
+| `GET`    | `/connections/strava/authorize` | Where to send the admin to authorise Strava (admin) | `200` |
+| `POST`   | `/connections/strava/callback` | Finish connecting Strava with the code from its redirect (admin) | `200` |
 | `POST`   | `/admin/login`   | Log in, sets the session cookie | `200` |
 | `POST`   | `/admin/logout`  | End the session          | `204`   |
 | `GET`    | `/admin/me`      | The logged-in admin      | `200`   |
 
-Everything in the garden is an **item** with a `kind` (`note` or `film`). `POST` and `PUT` take:
+Everything in the garden is an **item** with a `kind` (`note`, `film` or `activity`). `POST` and `PUT` take:
 
 ```json
 {
@@ -108,6 +110,30 @@ POST /connections/letterboxd/sync
 - Syncing again updates the same items rather than duplicating them. Letterboxd's facts are refreshed: the data fields (rating, liked, rewatch, year, poster, links) and the watched date. Title, review, topic and visibility are only set on the first import, so edits made in Almanac are kept.
 - The API re-syncs every connection on startup and every `connectors.sync_interval_minutes` (default 360; `0` turns this off). A failed sync returns `502` with the reason, which is also stored on the connection as `last_error`.
 
+### Strava
+
+Strava uses OAuth, so it needs a Strava API application of your own:
+
+1. Create one at https://www.strava.com/settings/api. Set **Authorization Callback Domain** to `localhost` for local development, or to your domain when deployed.
+2. Put its credentials in `configuration.local.yaml` next to `configuration.yaml`. That file is git-ignored, so the secret stays out of the repo:
+
+   ```yaml
+   connectors:
+     strava:
+       client_id: "12345"
+       client_secret: "your-client-secret"
+   ```
+
+3. Run the API and go to `/admin`, then click **Connect with Strava**. Strava sends you back to `/admin/strava/callback`, which finishes connecting and imports your activities.
+
+Details:
+- Almanac asks for `read,activity:read_all`. Each activity becomes an `activity` item with `source: "strava"` and the Strava activity id as its `external_id`. GPS routes aren't stored.
+- **Strava imports are always private.** Strava's API agreement (effective 1 June 2026) only allows a user's Strava data to be shown to that user. Trying to make an imported activity public is rejected with `400`. Activities you log by hand can still be public.
+- The first sync imports your whole history (paged, capped at 10,000 per sync). After that, each sync continues from the newest activity it has seen, re-reading the week before it to catch edits.
+- Access tokens last 6 hours and are refreshed automatically. Strava rotates refresh tokens, so the new ones are saved straight away. Tokens are stored in `connections.credentials` and never returned by the API.
+- Disconnecting revokes Almanac's access at Strava (`/oauth/revoke`) and keeps the imported activities.
+- Default rate limits are 100 read requests per 15 minutes and 1,000 per day. A `429` is reported as "try again in 15 minutes".
+
 ## Configuration
 
-Settings come from `configuration.yaml`, and any of them can be overridden with `APP_` environment variables, using `__` for nesting (e.g. `APP_SESSION_KEY=...`, `APP_DATABASE__PASSWORD=...`). The `session_key` in `configuration.yaml` is for local development only. Set `APP_SESSION_KEY` (at least 64 characters) and `APP_SECURE_COOKIES=true` anywhere else.
+Settings come from `configuration.yaml`. An optional, git-ignored `configuration.local.yaml` overrides it, which is the place for secrets. Any setting can also be overridden with `APP_` environment variables, using `__` for nesting (e.g. `APP_SESSION_KEY=...`, `APP_DATABASE__PASSWORD=...`). The `session_key` in `configuration.yaml` is for local development only. Set `APP_SESSION_KEY` (at least 64 characters) and `APP_SECURE_COOKIES=true` anywhere else.

@@ -4,6 +4,7 @@ import type { Item, ItemKind } from './api'
 export const KINDS: Record<ItemKind, { label: string; plural: string; slug: string; create: string }> = {
 	note: { label: 'Note', plural: 'Notes', slug: 'notes', create: 'Plant a note' },
 	film: { label: 'Film', plural: 'Films', slug: 'films', create: 'Log a film' },
+	activity: { label: 'Activity', plural: 'Activities', slug: 'activities', create: 'Log an activity' },
 }
 
 export const itemPath = (item: Pick<Item, 'id' | 'kind'>) => `/${KINDS[item.kind].slug}/${item.id}`

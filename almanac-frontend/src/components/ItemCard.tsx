@@ -1,12 +1,33 @@
 import { Link } from 'react-router'
-import type { FilmItem, Item, NoteItem } from '../api'
-import { excerpt, formatDate, isFilm } from '../items'
+import type { ActivityItem, FilmItem, Item, NoteItem } from '../api'
+import { excerpt, formatDate, isActivity, isFilm, sportLabel } from '../items'
 import { itemPath } from '../kinds'
+import { ActivityStats } from './Activity'
 import { FilmFlags, FilmPoster, Rating } from './Film'
 import { PrivateBadge } from './PrivateBadge'
 
 export function ItemCard({ item, showTopic = true }: { item: Item; showTopic?: boolean }) {
-	return isFilm(item) ? <FilmCard film={item} /> : <NoteCard note={item} showTopic={showTopic} />
+	if (isFilm(item)) {
+		return <FilmCard film={item} />
+	}
+	if (isActivity(item)) {
+		return <ActivityCard activity={item} />
+	}
+	return <NoteCard note={item} showTopic={showTopic} />
+}
+
+function ActivityCard({ activity }: { activity: ActivityItem }) {
+	return (
+		<article className="note-card">
+			<h3>
+				<Link to={itemPath(activity)}>{activity.title}</Link> <PrivateBadge item={activity} />
+			</h3>
+			<div className="meta">
+				{sportLabel(activity.data.sport)} · {formatDate(activity.occurred_at)}
+			</div>
+			<ActivityStats activity={activity.data} size="small" />
+		</article>
+	)
 }
 
 function NoteCard({ note, showTopic }: { note: NoteItem; showTopic: boolean }) {

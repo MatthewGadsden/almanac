@@ -50,17 +50,26 @@ pub async fn save_connection(
 	Ok(HttpResponse::Ok().json(connection))
 }
 
-/// Disconnects a provider. Items it imported stay in the garden.
+/// Disconnects a provider. Items it imported stay in the garden. For OAuth providers the tokens
+/// are revoked first, on a best-effort basis: a failure there shouldn't stop disconnecting.
 pub async fn delete_connection(
 	_admin: AdminUser,
 	path: web::Path<String>,
 	pool: web::Data<PgPool>,
+	context: web::Data<ConnectorContext>,
 ) -> Result<HttpResponse, ApiError> {
 	let provider = provider(&path)?;
-	if !connectors::delete_connection(pool.get_ref(), provider).await? {
-		return Err(ApiError::NotFound);
+	let connection = connectors::get_connection(pool.get_ref(), provider)
+		.await?
+		.ok_or(ApiError::NotFound)?;
+
+	if provider == Provider::Strava
+		&& let Err(e) = connectors::strava::revoke(&connection, context.get_ref()).await
+	{
+		eprintln!("Couldn't revoke Strava access while disconnecting: {e}");
 	}
 
+	connectors::delete_connection(pool.get_ref(), provider).await?;
 	Ok(HttpResponse::NoContent().finish())
 }
 

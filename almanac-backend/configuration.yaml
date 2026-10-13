@@ -15,3 +15,15 @@ connectors:
   letterboxd_base_url: "https://letterboxd.com"
   # How often every connection is re-synced while the API runs; 0 turns automatic syncing off
   sync_interval_minutes: 360
+  strava:
+    # From your API application at https://www.strava.com/settings/api.
+    # Leave client_id empty to turn Strava off.
+    client_id: ""
+    # Don't commit this: put it in configuration.local.yaml (git-ignored) or set
+    # APP_CONNECTORS__STRAVA__CLIENT_SECRET instead
+    client_secret: ""
+    # Where Strava sends you back after you authorise; must be on the application's
+    # Authorization Callback Domain (localhost is allowed for development)
+    redirect_uri: "http://localhost:5173/admin/strava/callback"
+    oauth_base_url: "https://www.strava.com/oauth"
+    api_base_url: "https://www.strava.com/api/v3"

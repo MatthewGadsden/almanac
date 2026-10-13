@@ -4,6 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AdminUser;
+use crate::connectors::Provider;
 use crate::domain::{Item, ItemKind, ItemPayload, Visibility};
 use crate::error::ApiError;
 
@@ -143,10 +144,28 @@ pub async fn update_item(
 	payload: web::Json<ItemPayload>,
 	pool: web::Data<PgPool>,
 ) -> Result<HttpResponse, ApiError> {
+	let id = id.into_inner();
 	let item = payload
 		.into_inner()
 		.validate()
 		.map_err(ApiError::Validation)?;
+
+	if item.visibility == Some(Visibility::Public) {
+		let source = sqlx::query_scalar!("SELECT source FROM items WHERE id = $1", id)
+			.fetch_optional(pool.get_ref())
+			.await?;
+		if source
+			.as_deref()
+			.and_then(Provider::parse)
+			.is_some_and(|provider| !provider.allows_public_imports())
+		{
+			return Err(ApiError::Validation(
+				"Strava's API agreement only allows your Strava data to be shown to you, so \
+				activities imported from Strava stay private"
+					.into(),
+			));
+		}
+	}
 
 	let row = sqlx::query_as!(
 		ItemRow,
@@ -160,7 +179,7 @@ pub async fn update_item(
 		RETURNING id, kind, title, topic, body, data, occurred_at, visibility, source,
 			external_id, created_at, updated_at
 		"#,
-		id.into_inner(),
+		id,
 		item.kind.as_str(),
 		item.title,
 		item.topic,
