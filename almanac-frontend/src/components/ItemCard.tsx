@@ -1,12 +1,35 @@
 import { Link } from 'react-router'
-import type { FilmItem, Item, NoteItem } from '../api'
-import { excerpt, formatDate, isFilm } from '../items'
+import type { ActivityItem, FilmItem, Item, NoteItem } from '../api'
+import { excerpt, formatDate, isActivity, isFilm } from '../items'
 import { itemPath } from '../kinds'
+import { RouteOutline } from './Activity'
 import { FilmFlags, FilmPoster, Rating } from './Film'
 import { PrivateBadge } from './PrivateBadge'
 
 export function ItemCard({ item, showTopic = true }: { item: Item; showTopic?: boolean }) {
-	return isFilm(item) ? <FilmCard film={item} /> : <NoteCard note={item} showTopic={showTopic} />
+	if (isFilm(item)) {
+		return <FilmCard film={item} />
+	}
+	if (isActivity(item)) {
+		return <ActivityCard activity={item} />
+	}
+	return <NoteCard note={item} showTopic={showTopic} />
+}
+
+/** A tile like a film's, with the route's outline in place of a poster. */
+function ActivityCard({ activity }: { activity: ActivityItem }) {
+	return (
+		<article className="film-card">
+			<Link to={itemPath(activity)} className="film-card-link">
+				<RouteOutline outline={activity.data.route_outline} className="activity-card-route" />
+				<span className="film-card-title">{activity.title}</span>
+				<span className="film-card-meta">
+					<span className="meta">{formatDate(activity.occurred_at)}</span>
+					<PrivateBadge item={activity} />
+				</span>
+			</Link>
+		</article>
+	)
 }
 
 function NoteCard({ note, showTopic }: { note: NoteItem; showTopic: boolean }) {

@@ -106,6 +106,9 @@ function AdminDashboard({ username }: { username: string }) {
 				<Link className="pill-button" to={newItemPath('film')}>
 					{KINDS.film.create}
 				</Link>
+				<Link className="pill-button" to={newItemPath('activity')}>
+					{KINDS.activity.create}
+				</Link>
 				<button type="button" className="pill-button pill-button-quiet" onClick={handleLogout}>
 					Log out
 				</button>
@@ -126,6 +129,7 @@ function AdminDashboard({ username }: { username: string }) {
 							<span className="meta">
 								{KINDS[item.kind].label}
 								{item.source === 'letterboxd' && ' · Letterboxd'}
+								{item.source === 'strava' && ' · Strava'}
 							</span>
 							<span className="meta">{item.topic ?? '—'}</span>
 							<span className="meta">

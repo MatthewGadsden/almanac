@@ -1,7 +1,7 @@
 // Client for almanac-backend. In dev, Vite proxies /api to the backend (see vite.config.ts).
 const API_URL: string = import.meta.env.VITE_API_URL ?? '/api'
 
-export type ItemKind = 'note' | 'film'
+export type ItemKind = 'note' | 'film' | 'activity'
 export type Visibility = 'public' | 'private'
 
 export interface FilmData {
@@ -15,6 +15,21 @@ export interface FilmData {
 	/** The entry on Letterboxd, for imported films. */
 	letterboxd_url?: string
 	tmdb_id?: number
+}
+
+export interface ActivityData {
+	/** Strava's sport type, e.g. Run, TrailRun, Ride, Swim, WeightTraining. */
+	sport: string
+	distance_m?: number
+	moving_time_s?: number
+	elapsed_time_s?: number
+	elevation_gain_m?: number
+	average_heartrate?: number
+	max_heartrate?: number
+	/** The activity on Strava, for imported activities. */
+	strava_url?: string
+	/** The route's shape as [x, y] points in a 100×100 box, y downwards. No coordinates. */
+	route_outline?: [number, number][]
 }
 
 interface ItemBase {
@@ -35,19 +50,20 @@ interface ItemBase {
 
 export type NoteItem = ItemBase & { kind: 'note'; data: Record<string, never> }
 export type FilmItem = ItemBase & { kind: 'film'; data: FilmData }
-export type Item = NoteItem | FilmItem
+export type ActivityItem = ItemBase & { kind: 'activity'; data: ActivityData }
+export type Item = NoteItem | FilmItem | ActivityItem
 
 export interface ItemPayload {
 	kind: ItemKind
 	title: string
 	topic: string | null
 	body: string
-	data?: Partial<FilmData>
+	data?: Partial<FilmData> | Partial<ActivityData>
 	occurred_at?: string
 	visibility: Visibility
 }
 
-export type Provider = 'letterboxd'
+export type Provider = 'letterboxd' | 'strava'
 
 export interface SyncSummary {
 	fetched: number
@@ -60,7 +76,8 @@ export interface SyncSummary {
 
 export interface Connection {
 	provider: Provider
-	settings: { username: string }
+	/** Letterboxd: `username`. Strava: the athlete who authorised (`athlete_id`, `name`). */
+	settings: { username?: string; athlete_id?: number; name?: string }
 	import_visibility: Visibility
 	last_synced_at: string | null
 	last_sync_summary: SyncSummary | null
@@ -165,6 +182,19 @@ export function deleteConnection(provider: Provider): Promise<void> {
 
 export function syncConnection(provider: Provider): Promise<SyncSummary> {
 	return request<SyncSummary>(`/connections/${provider}/sync`, { method: 'POST' })
+}
+
+/** Where to send the admin to authorise Almanac on Strava. */
+export function stravaAuthorize(): Promise<{ url: string }> {
+	return request<{ url: string }>('/connections/strava/authorize')
+}
+
+/** Finishes connecting Strava with what Strava put on the redirect. */
+export function stravaCallback(code: string, state: string, scope: string): Promise<Connection> {
+	return request<Connection>('/connections/strava/callback', {
+		method: 'POST',
+		body: JSON.stringify({ code, state, scope }),
+	})
 }
 
 /** The logged-in admin, or null when there is no session. */

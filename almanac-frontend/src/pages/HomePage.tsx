@@ -1,9 +1,23 @@
 import { Link } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import { RouteOutline } from '../components/Activity'
 import { FilmFlags, FilmPoster, Rating } from '../components/Film'
 import { ItemCard } from '../components/ItemCard'
 import { LoadState } from '../components/LoadState'
-import { byRecentlyOccurred, byRecentlyUpdated, byTitle, excerpt, formatDate, isFilm, isNote, isTended, stars } from '../items'
+import {
+	byRecentlyOccurred,
+	byRecentlyUpdated,
+	byTitle,
+	excerpt,
+	formatDate,
+	formatDistance,
+	isActivity,
+	isFilm,
+	isNote,
+	isTended,
+	sportLabel,
+	stars,
+} from '../items'
 import { itemPath, KINDS, newItemPath } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 import type { FilmItem, Item } from '../api'
@@ -52,8 +66,15 @@ export function HomePage() {
 									<span className="status-badge">{isTended(item) ? 'Tended' : 'Planted'}</span>
 									<span className="meta">{formatDate(item.updated_at)}</span>
 								</span>
-								<span className="update-item-title">{item.title}</span>
-								<span className="meta">{updateSubtitle(item)}</span>
+								<span className="update-item-body">
+									{isActivity(item) && (
+										<RouteOutline outline={item.data.route_outline} className="update-item-route" />
+									)}
+									<span className="update-item-text">
+										<span className="update-item-title">{item.title}</span>
+										<span className="meta">{updateSubtitle(item)}</span>
+									</span>
+								</span>
 							</Link>
 						</li>
 					))}
@@ -118,6 +139,11 @@ function RecentFilm({ film }: { film: FilmItem }) {
 function updateSubtitle(item: Item): string {
 	if (isFilm(item)) {
 		return [KINDS.film.label, item.data.rating && stars(item.data.rating)].filter(Boolean).join(' · ')
+	}
+	if (isActivity(item)) {
+		return [sportLabel(item.data.sport), item.data.distance_m && formatDistance(item.data.distance_m)]
+			.filter(Boolean)
+			.join(' · ')
 	}
 
 	return item.topic ?? KINDS[item.kind].label

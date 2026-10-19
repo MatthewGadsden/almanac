@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::FilmData;
+use super::{ActivityData, FilmData};
 
 /// What an item is. Each kind has its own shape for `Item::data`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -9,6 +9,7 @@ use super::FilmData;
 pub enum ItemKind {
 	Note,
 	Film,
+	Activity,
 }
 
 impl ItemKind {
@@ -16,6 +17,7 @@ impl ItemKind {
 		match self {
 			ItemKind::Note => "note",
 			ItemKind::Film => "film",
+			ItemKind::Activity => "activity",
 		}
 	}
 
@@ -23,6 +25,7 @@ impl ItemKind {
 		match value {
 			"note" => Some(ItemKind::Note),
 			"film" => Some(ItemKind::Film),
+			"activity" => Some(ItemKind::Activity),
 			_ => None,
 		}
 	}
@@ -61,7 +64,7 @@ pub struct Item {
 	pub topic: Option<String>,
 	/// The admin's own writing, as HTML.
 	pub body: String,
-	/// Kind-specific fields, e.g. `FilmData` for films; `{}` for notes.
+	/// Kind-specific fields: `FilmData` for films, `ActivityData` for activities, `{}` for notes.
 	pub data: serde_json::Value,
 	pub occurred_at: DateTime<Utc>,
 	pub visibility: Visibility,
@@ -119,6 +122,7 @@ impl ItemPayload {
 				serde_json::json!({})
 			}
 			ItemKind::Film => FilmData::parse(data)?.to_value(),
+			ItemKind::Activity => ActivityData::parse(data)?.to_value(),
 		};
 
 		Ok(ValidItem {

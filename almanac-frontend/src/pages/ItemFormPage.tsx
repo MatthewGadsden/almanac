@@ -1,15 +1,35 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { errorMessageOf, type FilmData, type Item, type ItemKind, type ItemPayload, type Visibility } from '../api'
+import {
+	errorMessageOf,
+	type ActivityData,
+	type FilmData,
+	type Item,
+	type ItemKind,
+	type ItemPayload,
+	type Visibility,
+} from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { LoadState } from '../components/LoadState'
 import { NoteBody } from '../components/NoteBody'
-import { fromDateInput, groupByTopic, isFilm, stars, toDateInput } from '../items'
+import {
+	formatDuration,
+	fromDateInput,
+	groupByTopic,
+	isActivity,
+	isFilm,
+	parseDuration,
+	stars,
+	toDateInput,
+} from '../items'
 import { itemPath, KINDS } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 import { NotFoundPage } from './NotFoundPage'
 
 const RATINGS = [0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]
+
+/** Suggestions for the sport field; any Strava sport type works. */
+const SPORTS = ['Run', 'TrailRun', 'Walk', 'Hike', 'Ride', 'MountainBikeRide', 'Swim', 'WeightTraining', 'Yoga', 'Workout']
 
 /** /notes/new, /films/new and their /:id/edit pages. Visitors get the not-found page. */
 export function ItemFormPage({ kind }: { kind: ItemKind }) {
@@ -67,6 +87,9 @@ interface ItemFormProps {
 function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	const navigate = useNavigate()
 	const film: Partial<FilmData> = initial && isFilm(initial) ? initial.data : {}
+	const activity: Partial<ActivityData> = initial && isActivity(initial) ? initial.data : {}
+	// Strava's API agreement only allows your Strava data to be shown to you
+	const lockedPrivate = initial?.source === 'strava'
 
 	const [title, setTitle] = useState(initial?.title ?? '')
 	const [topic, setTopic] = useState(initial?.topic ?? '')
@@ -79,19 +102,44 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	const [liked, setLiked] = useState(film.liked ?? false)
 	const [rewatch, setRewatch] = useState(film.rewatch ?? false)
 	const [posterUrl, setPosterUrl] = useState(film.poster_url ?? '')
+	const [sport, setSport] = useState(activity.sport ?? 'Run')
+	const [distanceKm, setDistanceKm] = useState(activity.distance_m ? String(activity.distance_m / 1000) : '')
+	const [movingTime, setMovingTime] = useState(activity.moving_time_s ? formatDuration(activity.moving_time_s) : '')
+	const [elevation, setElevation] = useState(activity.elevation_gain_m?.toString() ?? '')
+	const [heartRate, setHeartRate] = useState(activity.average_heartrate?.toString() ?? '')
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
 	function payload(): ItemPayload {
 		const common = { kind, title: title.trim(), topic: topic.trim() || null, body, visibility }
-		if (kind !== 'film') {
+		if (kind === 'note') {
 			return common
 		}
 
+		// Keep the exact time (e.g. an activity's start) unless the date itself was changed
+		const occurred_at =
+			initial && watchedOn === toDateInput(initial.occurred_at) ? initial.occurred_at : fromDateInput(watchedOn)
+
 		// Empty optional fields are sent as undefined, which JSON.stringify drops
+		if (kind === 'activity') {
+			return {
+				...common,
+				occurred_at,
+				data: {
+					// Keep fields the form doesn't edit, e.g. strava_url and max heart rate
+					...activity,
+					sport: sport.trim(),
+					distance_m: distanceKm ? Math.round(Number(distanceKm) * 1000 * 10) / 10 : undefined,
+					moving_time_s: parseDuration(movingTime),
+					elevation_gain_m: elevation ? Number(elevation) : undefined,
+					average_heartrate: heartRate ? Number(heartRate) : undefined,
+				},
+			}
+		}
+
 		return {
 			...common,
-			occurred_at: fromDateInput(watchedOn),
+			occurred_at,
 			data: {
 				// Keep fields the form doesn't edit, e.g. letterboxd_url and tmdb_id on imported films
 				...film,
@@ -124,6 +172,12 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	return (
 		<section>
 			<h2 className="section-heading">{heading}</h2>
+			{imported === 'strava' && (
+				<p className="notice">
+					Imported from Strava. Your title, topic and notes are kept, but the figures and start time are
+					refreshed from Strava on every sync, and it stays private.
+				</p>
+			)}
 			{imported === 'letterboxd' && (
 				<p className="notice">
 					Imported from Letterboxd. Your title, topic and review edits are kept, but the rating, liked,
@@ -152,6 +206,63 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 						</datalist>
 					</label>
 				</div>
+
+				{kind === 'activity' && (
+					<>
+						<div className="note-form-row note-form-row-4">
+							<label>
+								<span>Sport</span>
+								<input value={sport} onChange={(e) => setSport(e.target.value)} list="sport-options" required />
+								<datalist id="sport-options">
+									{SPORTS.map((option) => (
+										<option key={option} value={option} />
+									))}
+								</datalist>
+							</label>
+							<label>
+								<span>Date</span>
+								<input type="date" value={watchedOn} onChange={(e) => setWatchedOn(e.target.value)} required />
+							</label>
+							<label>
+								<span>Distance (km)</span>
+								<input
+									type="number"
+									min={0}
+									// Any precision: Strava's distances (e.g. 14.6775 km) must survive an edit
+									step="any"
+									value={distanceKm}
+									onChange={(e) => setDistanceKm(e.target.value)}
+								/>
+							</label>
+							<label>
+								<span>Moving time</span>
+								<input
+									value={movingTime}
+									onChange={(e) => setMovingTime(e.target.value)}
+									placeholder="h:mm:ss"
+									pattern="[0-9]+(:[0-5]?[0-9]){0,2}"
+									title="Minutes, or h:mm:ss"
+								/>
+							</label>
+						</div>
+						<div className="note-form-row note-form-row-4">
+							<label>
+								<span>Elevation gain (m)</span>
+								<input type="number" min={0} value={elevation} onChange={(e) => setElevation(e.target.value)} />
+							</label>
+							<label>
+								<span>Avg heart rate (bpm)</span>
+								<input
+									type="number"
+									min={20}
+									max={250}
+									value={heartRate}
+									onChange={(e) => setHeartRate(e.target.value)}
+								/>
+							</label>
+						</div>
+					</>
+				)}
 
 				{kind === 'film' && (
 					<>
@@ -213,7 +324,7 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 
 				<div className="note-editor">
 					<label>
-						<span>{kind === 'film' ? 'Review (HTML)' : 'Body (HTML)'}</span>
+						<span>{kind === 'film' ? 'Review (HTML)' : kind === 'activity' ? 'Notes (HTML)' : 'Body (HTML)'}</span>
 						<textarea
 							className="code-input"
 							value={body}
@@ -237,10 +348,19 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 
 				<label className="visibility-field">
 					<span>Visibility</span>
-					<select value={visibility} onChange={(e) => setVisibility(e.target.value as Visibility)}>
+					<select
+						value={visibility}
+						onChange={(e) => setVisibility(e.target.value as Visibility)}
+						disabled={lockedPrivate}
+					>
 						<option value="public">Public: anyone can see it</option>
 						<option value="private">Private: only you, when logged in</option>
 					</select>
+					{lockedPrivate && (
+						<small className="field-hint">
+							Strava's API agreement only allows your Strava data to be shown to you, so this stays private.
+						</small>
+					)}
 				</label>
 
 				{error && <p className="notice notice-error">{error}</p>}

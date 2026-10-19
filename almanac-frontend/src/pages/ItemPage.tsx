@@ -1,17 +1,27 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
-import { errorMessageOf, type FilmItem, type Item, type ItemKind, type NoteItem } from '../api'
+import { errorMessageOf, type ActivityItem, type FilmItem, type Item, type ItemKind, type NoteItem } from '../api'
 import { useAuth } from '../auth/AuthContext'
+import { ActivityStats, RouteOutline } from '../components/Activity'
 import { FilmFlags, FilmPoster, Rating } from '../components/Film'
 import { LoadState } from '../components/LoadState'
 import { NoteBody } from '../components/NoteBody'
 import { PrivateBadge } from '../components/PrivateBadge'
-import { byRecentlyOccurred, byTitle, formatDate, isFilm, isTended } from '../items'
-import { editItemPath, itemPath, topicPath } from '../kinds'
+import {
+	byRecentlyOccurred,
+	byTitle,
+	formatDate,
+	formatDayTime,
+	isActivity,
+	isFilm,
+	isTended,
+	sportLabel,
+} from '../items'
+import { editItemPath, itemPath, KINDS, topicPath } from '../kinds'
 import { useItems } from '../state/ItemsContext'
 import { NotFoundPage } from './NotFoundPage'
 
-/** /notes/:id and /films/:id. The body column is shared; the header and aside vary by kind. */
+/** /notes/:id, /films/:id and /activities/:id. The body column is shared; the header and aside vary by kind. */
 export function ItemPage({ kind }: { kind: ItemKind }) {
 	const { id } = useParams()
 	const navigate = useNavigate()
@@ -38,7 +48,7 @@ export function ItemPage({ kind }: { kind: ItemKind }) {
 		setError(null)
 		try {
 			await deleteItem(item.id)
-			navigate(item.kind === 'film' ? '/films' : '/')
+			navigate(item.kind === 'note' ? '/' : `/${KINDS[item.kind].slug}`)
 		} catch (e) {
 			setError(errorMessageOf(e))
 			setDeleting(false)
@@ -47,28 +57,32 @@ export function ItemPage({ kind }: { kind: ItemKind }) {
 
 	return (
 		<article className={`note note-${item.kind}`}>
-			{isFilm(item) ? <FilmHeader film={item} /> : <NoteHeader note={item} />}
+			{isFilm(item) && <FilmHeader film={item} />}
+			{isActivity(item) && <ActivityHeader activity={item} />}
+			{item.kind === 'note' && <NoteHeader note={item} />}
 
 			<div className="note-main">
 				{item.body.trim() ? (
 					<NoteBody body={item.body} />
 				) : (
 					<p className="notice">
-						{isFilm(item) ? 'No review written yet.' : 'This note is still a seed — it has no body yet.'}
+						{isFilm(item) && 'No review written yet.'}
+						{isActivity(item) && 'No notes on this one yet.'}
+						{item.kind === 'note' && 'This note is still a seed — it has no body yet.'}
 					</p>
 				)}
 			</div>
 
 			<aside className="note-aside">
 				<dl className="note-meta">
-					{isFilm(item) ? (
+					{isFilm(item) && (
 						<>
 							<MetaRow label="Watched">{formatDate(item.occurred_at)}</MetaRow>
 							<MetaRow label="Logged">{formatDate(item.created_at)}</MetaRow>
 						</>
-					) : (
-						<MetaRow label="Planted">{formatDate(item.created_at)}</MetaRow>
 					)}
+					{isActivity(item) && <MetaRow label="Started">{formatDayTime(item.occurred_at)}</MetaRow>}
+					{item.kind === 'note' && <MetaRow label="Planted">{formatDate(item.created_at)}</MetaRow>}
 					<MetaRow label="Tended">{isTended(item) ? formatDate(item.updated_at) : '—'}</MetaRow>
 					{item.topic && (
 						<MetaRow label="Topic">
@@ -83,6 +97,17 @@ export function ItemPage({ kind }: { kind: ItemKind }) {
 								</a>
 							) : (
 								'Letterboxd'
+							)}
+						</MetaRow>
+					)}
+					{item.source === 'strava' && (
+						<MetaRow label="From">
+							{isActivity(item) && item.data.strava_url ? (
+								<a className="strava-link" href={item.data.strava_url} target="_blank" rel="noreferrer">
+									View on Strava ↗
+								</a>
+							) : (
+								'Strava'
 							)}
 						</MetaRow>
 					)}
@@ -167,16 +192,36 @@ function FilmHeader({ film }: { film: FilmItem }) {
 	)
 }
 
+function ActivityHeader({ activity }: { activity: ActivityItem }) {
+	return (
+		<header className={`note-header ${activity.data.route_outline ? 'film-header' : ''}`}>
+			<RouteOutline outline={activity.data.route_outline} className="activity-header-route" />
+			<div className="film-header-text">
+				<nav className="breadcrumbs" aria-label="Breadcrumbs">
+					<Link to="/activities">Training log</Link>
+					<span aria-hidden="true">/</span>
+					<span>{activity.title}</span>
+				</nav>
+				<p className="activity-kicker">
+					{sportLabel(activity.data.sport)} · {formatDayTime(activity.occurred_at)}
+				</p>
+				<h1 className="page-title">{activity.title}</h1>
+				<ActivityStats activity={activity.data} />
+			</div>
+		</header>
+	)
+}
+
 /**
- * Notes: the other notes in the same topic. Films: the films watched just before and after,
- * in diary order. Either way the current item is marked "You are here".
+ * Notes: the other notes in the same topic. Films and activities: the ones just before and
+ * after in their log. Either way the current item is marked "You are here".
  */
 function WhereNext({ item, items }: { item: Item; items: Item[] }) {
 	let neighbours: Item[]
-	if (isFilm(item)) {
-		const films = items.filter(isFilm).sort(byRecentlyOccurred)
-		const index = films.findIndex((film) => film.id === item.id)
-		neighbours = films.slice(Math.max(0, index - 3), index + 4)
+	if (item.kind !== 'note') {
+		const log = items.filter((candidate) => candidate.kind === item.kind).sort(byRecentlyOccurred)
+		const index = log.findIndex((entry) => entry.id === item.id)
+		neighbours = log.slice(Math.max(0, index - 3), index + 4)
 	} else {
 		neighbours = item.topic
 			? items.filter((candidate) => candidate.kind === 'note' && candidate.topic === item.topic).sort(byTitle)
@@ -185,7 +230,9 @@ function WhereNext({ item, items }: { item: Item; items: Item[] }) {
 
 	return (
 		<section className="where-next">
-			<h2 className="aside-heading">{isFilm(item) ? 'In the diary' : 'Where to next?'}</h2>
+			<h2 className="aside-heading">
+				{isFilm(item) ? 'In the diary' : isActivity(item) ? 'In the log' : 'Where to next?'}
+			</h2>
 			<ul className="where-next-list">
 				{neighbours.map((neighbour) => (
 					<li key={neighbour.id}>

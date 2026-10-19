@@ -3,7 +3,9 @@
 //! syncing again updates them instead of creating duplicates.
 
 mod letterboxd;
+mod route;
 mod store;
+pub mod strava;
 
 pub use letterboxd::{LetterboxdEntry, LetterboxdSettings, parse_feed};
 pub use store::*;
@@ -13,7 +15,7 @@ use sqlx::PgPool;
 use std::time::Duration;
 
 use crate::configuration::ConnectorSettings;
-use crate::domain::ItemKind;
+use crate::domain::{ItemKind, Visibility};
 use crate::error::ApiError;
 
 /// Services items can be imported from. Also used as the items' `source`.
@@ -21,29 +23,43 @@ use crate::error::ApiError;
 #[serde(rename_all = "snake_case")]
 pub enum Provider {
 	Letterboxd,
+	Strava,
 }
 
 impl Provider {
 	pub fn as_str(self) -> &'static str {
 		match self {
 			Provider::Letterboxd => "letterboxd",
+			Provider::Strava => "strava",
 		}
 	}
 
 	pub fn parse(value: &str) -> Option<Self> {
 		match value {
 			"letterboxd" => Some(Provider::Letterboxd),
+			"strava" => Some(Provider::Strava),
 			_ => None,
 		}
 	}
 
-	/// Checks and normalises a connection's settings for this provider.
+	/// Checks and normalises settings entered for this provider. OAuth providers get their
+	/// settings from the authorisation flow instead, so they reject this.
 	pub fn validate_settings(
 		self,
 		settings: serde_json::Value,
 	) -> Result<serde_json::Value, String> {
 		match self {
 			Provider::Letterboxd => LetterboxdSettings::parse(settings).map(|s| s.to_value()),
+			Provider::Strava => Err("Strava is connected by authorising Almanac on Strava".into()),
+		}
+	}
+
+	/// Whether imported items may be public. Strava's API agreement only lets a user's Strava
+	/// data be shown to that user, so Strava imports are always private.
+	pub fn allows_public_imports(self) -> bool {
+		match self {
+			Provider::Letterboxd => true,
+			Provider::Strava => false,
 		}
 	}
 }
@@ -57,6 +73,16 @@ pub struct ImportedItem {
 	pub body: String,
 	pub data: serde_json::Value,
 	pub occurred_at: DateTime<Utc>,
+}
+
+/// What a provider's fetch returned.
+#[derive(Debug, Default)]
+pub struct Fetched {
+	pub items: Vec<ImportedItem>,
+	/// Entries that aren't items, e.g. Letterboxd lists.
+	pub skipped: usize,
+	/// Saved after the items are, so a failed save means the next sync retries them.
+	pub cursor: Option<serde_json::Value>,
 }
 
 /// What a sync did. Stored on the connection and returned by the sync endpoint.
@@ -150,18 +176,28 @@ async fn fetch_and_save(
 	pool: &PgPool,
 	context: &ConnectorContext,
 ) -> Result<SyncSummary, SyncError> {
-	let (items, skipped) = match connection.provider {
+	let fetched = match connection.provider {
 		Provider::Letterboxd => letterboxd::fetch(connection, context).await?,
+		Provider::Strava => strava::fetch(connection, pool, context).await?,
 	};
 
+	let visibility = if connection.provider.allows_public_imports() {
+		connection.import_visibility
+	} else {
+		Visibility::Private
+	};
 	let mut summary = upsert_items(
 		pool,
 		connection.provider.as_str(),
-		connection.import_visibility,
-		items,
+		visibility,
+		fetched.items,
 	)
 	.await?;
-	summary.skipped = skipped;
+	summary.skipped = fetched.skipped;
+
+	if let Some(cursor) = fetched.cursor {
+		save_sync_cursor(pool, connection.provider, cursor).await?;
+	}
 
 	Ok(summary)
 }

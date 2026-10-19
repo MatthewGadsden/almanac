@@ -403,6 +403,29 @@ section {
 	overflow-wrap: anywhere;
 }
 
+/* Title and subtitle, with an activity's route outline pinned to their left */
+.update-item-body {
+	display: flex;
+	align-items: center;
+	gap: 0.85rem;
+}
+
+.update-item-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+	min-width: 0;
+}
+
+.update-item-route {
+	flex: none;
+	width: 3.25rem;
+}
+
+.update-item-route polyline {
+	stroke-width: 2px;
+}
+
 /* Note cards */
 .note-grid {
 	display: grid;
@@ -1541,4 +1564,185 @@ section {
 .connection .field-hint {
 	display: block;
 	margin-top: 0.75rem;
+}
+
+/* ---------- Activities ---------- */
+
+/* A route's outline as a line icon, with a dot where it started */
+.route-outline {
+	display: block;
+	aspect-ratio: 1;
+	color: var(--text-emphasis);
+}
+
+.route-outline polyline {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.75px;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	vector-effect: non-scaling-stroke;
+}
+
+.route-outline .route-start {
+	stroke: var(--border-hover);
+	stroke-width: 7px;
+	stroke-linecap: round;
+	vector-effect: non-scaling-stroke;
+}
+
+/* Beside the title on an activity's page, where a film has its poster */
+.activity-header-route {
+	flex: none;
+	width: 10rem;
+}
+
+.activity-header-route polyline {
+	stroke-width: 2.5px;
+}
+
+.activity-header-route .route-start {
+	stroke-width: 10px;
+}
+
+.activity-card-route {
+	width: 100%;
+}
+
+.activity-card-route polyline {
+	stroke-width: 2.25px;
+}
+
+.activity-card-route .route-start {
+	stroke-width: 10px;
+}
+
+.training-route {
+	width: 2.2rem;
+}
+
+.training-route .route-start {
+	stroke-width: 5px;
+}
+
+.activity-kicker {
+	margin: 0.9rem 0 0;
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	color: var(--text-subtle);
+}
+
+.activity-kicker + .page-title {
+	margin-top: 0.4rem;
+}
+
+/* Headline figures: big on an activity's page, compact on cards */
+.activity-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem 2.25rem;
+	margin: 1.25rem 0 0;
+}
+
+.activity-stats dt {
+	font-family: var(--font-mono);
+	font-size: 0.65rem;
+	text-transform: uppercase;
+	letter-spacing: 0.12em;
+	color: var(--text-subtle);
+}
+
+.activity-stats dd {
+	margin: 0.2rem 0 0;
+	font-size: 1.6rem;
+	font-weight: 600;
+	color: var(--text-emphasis);
+}
+
+.activity-stats-small {
+	gap: 0.5rem 1.25rem;
+	margin-top: 0.75rem;
+}
+
+.activity-stats-small dd {
+	font-size: 0.95rem;
+	font-weight: 500;
+}
+
+/* Training log rows share the diary's panel */
+.training-row {
+	display: grid;
+	grid-template-columns: 2.5rem 2.4rem 8rem minmax(0, 1fr) 5.5rem 5.5rem 6.5rem 4.5rem;
+	align-items: center;
+	gap: 1rem;
+	padding: 0.7rem 1rem;
+	transition: background 0.2s ease;
+}
+
+.training-row:hover {
+	background: var(--bg-surface-hover);
+}
+
+.training-sport {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.training-figure {
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+	white-space: nowrap;
+}
+
+/* This year's per-sport totals, as pills */
+.training-sports {
+	list-style: none;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.45rem;
+	margin: 0.75rem 0 0;
+	padding: 0;
+}
+
+.training-sports li {
+	padding: 0.2rem 0.6rem;
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	color: var(--text-pill);
+	background: var(--bg-pill);
+	border: 1px solid var(--border-pill);
+	border-radius: 999px;
+}
+
+.strava-link {
+	color: var(--text-link);
+}
+
+.strava-link:hover {
+	color: var(--text-link-hover);
+}
+
+@media (max-width: 820px) {
+	.training-row {
+		grid-template-columns: 1.75rem 2.4rem minmax(0, 1fr) auto;
+		gap: 0.75rem;
+		padding: 0.6rem 0.75rem;
+	}
+
+	.training-sport,
+	.training-figure:not(:nth-of-type(4)),
+	.training-row .diary-flags {
+		display: none;
+	}
+
+	.activity-stats dd {
+		font-size: 1.25rem;
+	}
+
+	.activity-header-route {
+		width: 7rem;
+	}
+
 }
