@@ -1,8 +1,8 @@
 import { Link } from 'react-router'
 import type { ActivityItem, FilmItem, Item, NoteItem } from '../api'
-import { excerpt, formatDate, isActivity, isFilm, sportLabel } from '../items'
+import { excerpt, formatDate, isActivity, isFilm } from '../items'
 import { itemPath } from '../kinds'
-import { ActivityStats } from './Activity'
+import { RouteOutline } from './Activity'
 import { FilmFlags, FilmPoster, Rating } from './Film'
 import { PrivateBadge } from './PrivateBadge'
 
@@ -16,16 +16,18 @@ export function ItemCard({ item, showTopic = true }: { item: Item; showTopic?: b
 	return <NoteCard note={item} showTopic={showTopic} />
 }
 
+/** A tile like a film's, with the route's outline in place of a poster. */
 function ActivityCard({ activity }: { activity: ActivityItem }) {
 	return (
-		<article className="note-card">
-			<h3>
-				<Link to={itemPath(activity)}>{activity.title}</Link> <PrivateBadge item={activity} />
-			</h3>
-			<div className="meta">
-				{sportLabel(activity.data.sport)} · {formatDate(activity.occurred_at)}
-			</div>
-			<ActivityStats activity={activity.data} size="small" />
+		<article className="film-card">
+			<Link to={itemPath(activity)} className="film-card-link">
+				<RouteOutline outline={activity.data.route_outline} className="activity-card-route" />
+				<span className="film-card-title">{activity.title}</span>
+				<span className="film-card-meta">
+					<span className="meta">{formatDate(activity.occurred_at)}</span>
+					<PrivateBadge item={activity} />
+				</span>
+			</Link>
 		</article>
 	)
 }

@@ -3,6 +3,7 @@
 //! syncing again updates them instead of creating duplicates.
 
 mod letterboxd;
+mod route;
 mod store;
 pub mod strava;
 

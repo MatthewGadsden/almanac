@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import type { ActivityItem } from '../api'
 import { useAuth } from '../auth/AuthContext'
+import { RouteOutline } from '../components/Activity'
 import { LoadState } from '../components/LoadState'
 import { PrivateBadge } from '../components/PrivateBadge'
 import {
@@ -53,6 +54,7 @@ export function ActivitiesPage() {
 									<li key={activity.id}>
 										<Link className="training-row" to={itemPath(activity)}>
 											<span className="diary-day">{new Date(activity.occurred_at).getDate()}</span>
+											<RouteOutline outline={activity.data.route_outline} className="training-route" placeholder />
 											<span className="training-sport meta">{sportLabel(activity.data.sport)}</span>
 											<span className="diary-film">{activity.title}</span>
 											<span className="training-figure">

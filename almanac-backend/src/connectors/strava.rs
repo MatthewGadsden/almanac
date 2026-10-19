@@ -7,6 +7,7 @@
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 
+use super::route::outline_from_polyline;
 use super::{Connection, ConnectorContext, Fetched, ImportedItem, Provider, SyncError};
 use crate::domain::{ActivityData, ItemKind};
 
@@ -44,10 +45,17 @@ pub struct StravaAthlete {
 	pub name: String,
 }
 
+/// Bumped when imports gain a field, so the next sync re-reads every activity once to fill it
+/// in. 1: route outlines.
+const CURSOR_VERSION: u32 = 1;
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 struct SyncCursor {
 	/// Start time (Unix seconds) of the newest activity seen so far.
 	after: i64,
+	/// Cursors from before versioning count as 0.
+	#[serde(default)]
+	version: u32,
 }
 
 fn to_json<T: serde::Serialize>(value: &T) -> serde_json::Value {
@@ -260,6 +268,15 @@ struct SummaryActivity {
 	average_heartrate: Option<f64>,
 	#[serde(default)]
 	max_heartrate: Option<f64>,
+	#[serde(default)]
+	map: Option<ActivityMap>,
+}
+
+#[derive(serde::Deserialize)]
+struct ActivityMap {
+	/// The route as an encoded polyline; empty or missing for activities without GPS.
+	#[serde(default)]
+	summary_polyline: Option<String>,
 }
 
 impl SummaryActivity {
@@ -278,6 +295,10 @@ impl SummaryActivity {
 			average_heartrate: self.average_heartrate,
 			max_heartrate: self.max_heartrate,
 			strava_url: Some(format!("https://www.strava.com/activities/{}", self.id)),
+			route_outline: self
+				.map
+				.and_then(|map| map.summary_polyline)
+				.and_then(|polyline| outline_from_polyline(&polyline)),
 		};
 		// Imported data has to pass the same checks as data entered by hand
 		let data = ActivityData::parse(activity.to_value())?.to_value();
@@ -312,9 +333,12 @@ pub(super) async fn fetch(
 	let previous = connection
 		.sync_cursor
 		.clone()
-		.and_then(|cursor| serde_json::from_value::<SyncCursor>(cursor).ok())
-		.map(|cursor| cursor.after);
-	let after = previous.map_or(0, |after| (after - OVERLAP_SECONDS).max(0));
+		.and_then(|cursor| serde_json::from_value::<SyncCursor>(cursor).ok());
+	let after = previous
+		.as_ref()
+		.filter(|cursor| cursor.version >= CURSOR_VERSION)
+		.map_or(0, |cursor| (cursor.after - OVERLAP_SECONDS).max(0));
+	let previous = previous.map(|cursor| cursor.after);
 
 	let url = format!(
 		"{}/athlete/activities",
@@ -382,7 +406,12 @@ pub(super) async fn fetch(
 	Ok(Fetched {
 		items,
 		skipped,
-		cursor: newest.map(|after| to_json(&SyncCursor { after })),
+		cursor: newest.map(|after| {
+			to_json(&SyncCursor {
+				after,
+				version: CURSOR_VERSION,
+			})
+		}),
 	})
 }
 

@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { errorMessageOf, type ActivityItem, type FilmItem, type Item, type ItemKind, type NoteItem } from '../api'
 import { useAuth } from '../auth/AuthContext'
-import { ActivityStats } from '../components/Activity'
+import { ActivityStats, RouteOutline } from '../components/Activity'
 import { FilmFlags, FilmPoster, Rating } from '../components/Film'
 import { LoadState } from '../components/LoadState'
 import { NoteBody } from '../components/NoteBody'
@@ -194,17 +194,20 @@ function FilmHeader({ film }: { film: FilmItem }) {
 
 function ActivityHeader({ activity }: { activity: ActivityItem }) {
 	return (
-		<header className="note-header">
-			<nav className="breadcrumbs" aria-label="Breadcrumbs">
-				<Link to="/activities">Training log</Link>
-				<span aria-hidden="true">/</span>
-				<span>{activity.title}</span>
-			</nav>
-			<p className="activity-kicker">
-				{sportLabel(activity.data.sport)} · {formatDayTime(activity.occurred_at)}
-			</p>
-			<h1 className="page-title">{activity.title}</h1>
-			<ActivityStats activity={activity.data} />
+		<header className={`note-header ${activity.data.route_outline ? 'film-header' : ''}`}>
+			<RouteOutline outline={activity.data.route_outline} className="activity-header-route" />
+			<div className="film-header-text">
+				<nav className="breadcrumbs" aria-label="Breadcrumbs">
+					<Link to="/activities">Training log</Link>
+					<span aria-hidden="true">/</span>
+					<span>{activity.title}</span>
+				</nav>
+				<p className="activity-kicker">
+					{sportLabel(activity.data.sport)} · {formatDayTime(activity.occurred_at)}
+				</p>
+				<h1 className="page-title">{activity.title}</h1>
+				<ActivityStats activity={activity.data} />
+			</div>
 		</header>
 	)
 }

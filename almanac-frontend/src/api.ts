@@ -28,6 +28,8 @@ export interface ActivityData {
 	max_heartrate?: number
 	/** The activity on Strava, for imported activities. */
 	strava_url?: string
+	/** The route's shape as [x, y] points in a 100×100 box, y downwards. No coordinates. */
+	route_outline?: [number, number][]
 }
 
 interface ItemBase {

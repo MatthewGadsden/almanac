@@ -62,6 +62,18 @@ async fn create_activity_rejects_invalid_details() {
 			"a non-https link",
 		),
 		(json!({ "sport": "Run", "pace": 5 }), "an unknown field"),
+		(
+			json!({ "sport": "Run", "route_outline": [[0, 0], [101, 50]] }),
+			"an outline outside its box",
+		),
+		(
+			json!({ "sport": "Run", "route_outline": [[50, 50]] }),
+			"a one-point outline",
+		),
+		(
+			json!({ "sport": "Run", "route_outline": [[51.5, -0.1], [51.6, -0.2]] }),
+			"coordinates instead of an outline",
+		),
 	];
 
 	for (data, description) in test_cases {

@@ -60,15 +60,18 @@ fn activities() -> serde_json::Value {
 			"start_date": "2026-10-12T19:30:00Z", "start_date_local": "2026-10-13T06:30:00Z",
 			"distance": 10234.5, "moving_time": 3125, "elapsed_time": 3300,
 			"total_elevation_gain": 85.0, "average_heartrate": 151.2, "max_heartrate": 178,
-			"map": { "summary_polyline": "abc" }, "private": false,
+			"map": { "summary_polyline": "_p~iF~ps|U_ulLnnqC_mqNvxq`@" }, "private": false,
 		},
 		{
 			"id": 9002, "name": "Leg day", "sport_type": "WeightTraining", "type": "WeightTraining",
 			"start_date": "2026-10-10T07:00:00Z", "distance": 0.0, "moving_time": 2700,
-			"elapsed_time": 2700, "total_elevation_gain": 0,
+			"elapsed_time": 2700, "total_elevation_gain": 0, "map": { "summary_polyline": "" },
 		},
 	])
 }
+
+/// The outline of the Morning Run's polyline: its shape in a 100×100 box, no coordinates.
+const ROUTE_OUTLINE: [[u8; 2]; 3] = [[100, 100], [88, 54], [0, 0]];
 
 async fn serve_activities(app: &TestApp, token: &str, activities: serde_json::Value) {
 	Mock::given(method("GET"))
@@ -240,6 +243,7 @@ async fn sync_imports_activities_as_private_items() {
 			"average_heartrate": 151.2,
 			"max_heartrate": 178.0,
 			"strava_url": "https://www.strava.com/activities/9001",
+			"route_outline": ROUTE_OUTLINE,
 		})
 	);
 
@@ -247,6 +251,10 @@ async fn sync_imports_activities_as_private_items() {
 	assert!(
 		legs.data.get("distance_m").is_none(),
 		"0 m isn't a distance"
+	);
+	assert!(
+		legs.data.get("route_outline").is_none(),
+		"no GPS, no outline"
 	);
 
 	app.post_logout().await;
@@ -289,6 +297,40 @@ async fn sync_continues_from_the_newest_activity() {
 		2,
 		"nothing is lost or duplicated"
 	);
+
+	app.cleanup().await;
+}
+
+#[tokio::test]
+async fn an_outdated_cursor_rereads_every_activity_once() {
+	// Arrange: a cursor saved before imports had route outlines
+	let app = spawn_admin_app().await;
+	connect_strava(&app, in_six_hours()).await;
+	sqlx::query("UPDATE connections SET sync_cursor = $1 WHERE provider = 'strava'")
+		.bind(json!({ "after": 1_760_000_000 }))
+		.execute(&app.db_pool)
+		.await
+		.unwrap();
+	Mock::given(method("GET"))
+		.and(path("/api/v3/athlete/activities"))
+		.and(query_param("after", "0"))
+		.respond_with(ResponseTemplate::new(200).set_body_json(activities()))
+		.expect(1)
+		.mount(&app.strava)
+		.await;
+
+	// Act
+	let response = app.sync_connection("strava").await;
+
+	// Assert
+	assert_eq!(200, response.status().as_u16());
+	app.strava.verify().await;
+	let cursor: serde_json::Value =
+		sqlx::query_scalar("SELECT sync_cursor FROM connections WHERE provider = 'strava'")
+			.fetch_one(&app.db_pool)
+			.await
+			.unwrap();
+	assert_eq!(cursor["version"], 1, "the next sync is incremental again");
 
 	app.cleanup().await;
 }

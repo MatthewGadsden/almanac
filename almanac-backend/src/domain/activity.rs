@@ -1,3 +1,8 @@
+/// Outlines are scaled into a box this size (0..=ROUTE_OUTLINE_SIZE on both axes).
+pub const ROUTE_OUTLINE_SIZE: u8 = 100;
+/// More points than an outline needs; imported ones have at most 80.
+const MAX_OUTLINE_POINTS: usize = 200;
+
 /// The `data` of an activity item: a run, ride, swim, workout, ...
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -19,6 +24,10 @@ pub struct ActivityData {
 	/// The activity on Strava, for imported activities.
 	#[serde(default, skip_serializing_if = "Option::is_none")]
 	pub strava_url: Option<String>,
+	/// The route's shape as `[x, y]` points in a `ROUTE_OUTLINE_SIZE` box, y downwards (as SVG).
+	/// Just the shape: no coordinates are stored.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	pub route_outline: Option<Vec<[u8; 2]>>,
 }
 
 impl ActivityData {
@@ -62,6 +71,16 @@ impl ActivityData {
 			.is_some_and(|url| !url.starts_with("https://"))
 		{
 			return Err("strava_url must be an https URL".into());
+		}
+
+		if let Some(outline) = &activity.route_outline {
+			let valid_outline = (2..=MAX_OUTLINE_POINTS).contains(&outline.len())
+				&& outline.iter().flatten().all(|v| *v <= ROUTE_OUTLINE_SIZE);
+			if !valid_outline {
+				return Err(format!(
+					"route_outline must be 2 to {MAX_OUTLINE_POINTS} points between 0 and {ROUTE_OUTLINE_SIZE}"
+				));
+			}
 		}
 
 		Ok(activity)

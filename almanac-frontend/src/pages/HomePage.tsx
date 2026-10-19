@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { useAuth } from '../auth/AuthContext'
+import { RouteOutline } from '../components/Activity'
 import { FilmFlags, FilmPoster, Rating } from '../components/Film'
 import { ItemCard } from '../components/ItemCard'
 import { LoadState } from '../components/LoadState'
@@ -65,8 +66,15 @@ export function HomePage() {
 									<span className="status-badge">{isTended(item) ? 'Tended' : 'Planted'}</span>
 									<span className="meta">{formatDate(item.updated_at)}</span>
 								</span>
-								<span className="update-item-title">{item.title}</span>
-								<span className="meta">{updateSubtitle(item)}</span>
+								<span className="update-item-body">
+									{isActivity(item) && (
+										<RouteOutline outline={item.data.route_outline} className="update-item-route" />
+									)}
+									<span className="update-item-text">
+										<span className="update-item-title">{item.title}</span>
+										<span className="meta">{updateSubtitle(item)}</span>
+									</span>
+								</span>
 							</Link>
 						</li>
 					))}
