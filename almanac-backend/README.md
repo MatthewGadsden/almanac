@@ -71,6 +71,9 @@ cargo test
 | `POST`   | `/connections/{provider}/sync` | Import from the service now (admin) | `200` |
 | `GET`    | `/connections/strava/authorize` | Where to send the admin to authorise Strava (admin) | `200` |
 | `POST`   | `/connections/strava/callback` | Finish connecting Strava with the code from its redirect (admin) | `200` |
+| `GET`    | `/tmdb`          | Whether TMDB film search is set up (admin) | `200` |
+| `GET`    | `/tmdb/search?query=…` | Search TMDB for films, up to 10 (admin) | `200` |
+| `GET`    | `/tmdb/movies/{tmdb_id}` | One TMDB film, with its director(s) (admin) | `200` |
 | `POST`   | `/admin/login`   | Log in, sets the session cookie | `200` |
 | `POST`   | `/admin/logout`  | End the session          | `204`   |
 | `GET`    | `/admin/me`      | The logged-in admin      | `200`   |
@@ -85,12 +88,13 @@ Everything in the garden is an **item** with a `kind` (`note`, `film` or `activi
   "body": "<p>Quietly wonderful.</p>",
   "occurred_at": "2026-10-11T12:00:00Z",
   "visibility": "public",
-  "data": { "year": 2023, "director": "Wim Wenders", "rating": 4.5, "liked": true, "rewatch": false, "poster_url": "https://..." }
+  "data": { "tmdb_id": 976893, "rating": 4.5, "liked": true, "rewatch": false }
 }
 ```
 
 - `topic` is required for notes and optional for other kinds.
 - `data` holds fields specific to a kind. Notes have none. A film's `data` is validated: `rating` must be 0.5 to 5 in half stars, `year` must be between 1870 and 2100, `poster_url` must be http(s), and unknown fields are rejected.
+- **A film's details aren't edited by hand.** A film logged through the API needs a `tmdb_id`, and its `title`, `year`, `director` and `poster_url` come from TMDB (see below), whatever the payload says. TMDB is asked again only when the `tmdb_id` changes. An imported film keeps the title and details its provider gave it. Rating, liked, rewatch, the watched date, topic, review and visibility stay yours.
 - `occurred_at` (when it happened) defaults to now on create. `visibility` defaults to `public`. On `PUT`, leaving either out keeps the current value.
 - Private items are only returned to the logged-in admin. Visitors get `404` for them.
 - Unknown ids return `404`. Invalid payloads return `400`.
@@ -133,6 +137,25 @@ Details:
 - Access tokens last 6 hours and are refreshed automatically. Strava rotates refresh tokens, so the new ones are saved straight away. Tokens are stored in `connections.credentials` and never returned by the API.
 - Disconnecting revokes Almanac's access at Strava (`/oauth/revoke`) and keeps the imported activities.
 - Default rate limits are 100 read requests per 15 minutes and 1,000 per day. A `429` is reported as "try again in 15 minutes".
+
+### TMDB
+
+[The Movie Database](https://www.themoviedb.org) is where films logged by hand come from: search on the film form and pick the film, and the backend takes its title, year, director(s) and poster from TMDB by `tmdb_id`. Without a token, films can't be logged by hand. Nothing is synced from TMDB, so it has no connection to set up, only a token:
+
+1. Create a free account and request an API key at https://www.themoviedb.org/settings/api.
+2. Copy the **API Read Access Token** (the long one, not the 32-character "API Key") into `configuration.local.yaml`:
+
+   ```yaml
+   connectors:
+     tmdb:
+       read_access_token: "eyJhbGciOi..."
+   ```
+
+Details:
+- The token is sent as a bearer token. The routes are admin only, so visitors can't use up your quota.
+- Search results are TMDB's first 10, without adult titles. Posters link to TMDB's image CDN (`w500`, with `w154` thumbnails for the search list).
+- Without a token, `GET /tmdb` returns `{ "configured": false }`, and creating a film is a `400`. A `tmdb_id` TMDB doesn't know is a `400`. A rejected token or a TMDB outage is a `502` with the reason; editing a film without changing its `tmdb_id` doesn't call TMDB.
+- TMDB's terms require the notice "This product uses the TMDB API but is not endorsed or certified by TMDB." The frontend shows it next to the search, in the admin's connections and on the film diary.
 
 ## Configuration
 

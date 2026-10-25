@@ -6,6 +6,7 @@ mod letterboxd;
 mod route;
 mod store;
 pub mod strava;
+pub mod tmdb;
 
 pub use letterboxd::{LetterboxdEntry, LetterboxdSettings, parse_feed};
 pub use store::*;

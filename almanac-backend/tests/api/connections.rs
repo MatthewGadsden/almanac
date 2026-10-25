@@ -156,15 +156,19 @@ async fn syncing_again_updates_letterboxd_facts_but_keeps_local_edits() {
 	serve_feed(&app, FEED).await;
 	app.sync_connection("letterboxd").await;
 
-	// Tend Paterson locally: new title, body and topic
+	// Tend Paterson locally: body and topic. The title and film details are Letterboxd's, so
+	// trying to change them does nothing.
 	let paterson = films(&app)
 		.await
 		.into_iter()
 		.find(|f| f.title == "Paterson")
 		.unwrap();
+	let mut data = paterson.data.clone();
+	data["year"] = json!(1999);
+	data["poster_url"] = json!("https://example.com/other.jpg");
 	let tended = json!({
 		"kind": "film", "title": "Paterson (again)", "topic": "Jarmusch",
-		"body": "<p>My own notes.</p>", "data": paterson.data,
+		"body": "<p>My own notes.</p>", "data": data,
 	});
 	assert_eq!(
 		200,
@@ -203,7 +207,12 @@ async fn syncing_again_updates_letterboxd_facts_but_keeps_local_edits() {
 		json!(4.5),
 		"facts follow Letterboxd"
 	);
-	assert_eq!(paterson.title, "Paterson (again)", "local edits are kept");
+	assert_eq!(paterson.title, "Paterson", "the title is Letterboxd's");
+	assert_eq!(
+		paterson.data["year"],
+		json!(2016),
+		"so are the film's details"
+	);
 	assert_eq!(paterson.body, "<p>My own notes.</p>");
 	assert_eq!(paterson.topic.as_deref(), Some("Jarmusch"));
 

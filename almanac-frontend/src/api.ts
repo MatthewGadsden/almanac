@@ -86,6 +86,21 @@ export interface Connection {
 	updated_at: string
 }
 
+/** A film from The Movie Database, as the film form uses it. */
+export interface TmdbMovie {
+	tmdb_id: number
+	title: string
+	/** Only when it differs from `title`. */
+	original_title?: string
+	year?: number
+	/** Only from `getTmdbMovie`: search results don't include credits. */
+	director?: string
+	poster_url?: string
+	/** A smaller poster, for lists. */
+	thumbnail_url?: string
+	overview: string
+}
+
 export interface AdminUser {
 	user_id: string
 	username: string
@@ -195,6 +210,20 @@ export function stravaCallback(code: string, state: string, scope: string): Prom
 		method: 'POST',
 		body: JSON.stringify({ code, state, scope }),
 	})
+}
+
+/** Whether the backend has a TMDB token, i.e. whether film search is available. */
+export function tmdbStatus(): Promise<{ configured: boolean }> {
+	return request<{ configured: boolean }>('/tmdb')
+}
+
+export function searchTmdb(query: string): Promise<TmdbMovie[]> {
+	return request<TmdbMovie[]>(`/tmdb/search?query=${encodeURIComponent(query)}`)
+}
+
+/** One film, with its director(s). */
+export function getTmdbMovie(tmdbId: number): Promise<TmdbMovie> {
+	return request<TmdbMovie>(`/tmdb/movies/${tmdbId}`)
 }
 
 /** The logged-in admin, or null when there is no session. */

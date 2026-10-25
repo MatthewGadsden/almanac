@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import {
 	errorMessageOf,
@@ -7,11 +7,13 @@ import {
 	type Item,
 	type ItemKind,
 	type ItemPayload,
+	type TmdbMovie,
 	type Visibility,
 } from '../api'
 import { useAuth } from '../auth/AuthContext'
 import { LoadState } from '../components/LoadState'
 import { NoteBody } from '../components/NoteBody'
+import { TmdbSearch } from '../components/TmdbSearch'
 import {
 	formatDuration,
 	fromDateInput,
@@ -23,6 +25,7 @@ import {
 	toDateInput,
 } from '../items'
 import { itemPath, KINDS } from '../kinds'
+import { tmdbMovieUrl } from '../site'
 import { useItems } from '../state/ItemsContext'
 import { NotFoundPage } from './NotFoundPage'
 
@@ -90,18 +93,29 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	const activity: Partial<ActivityData> = initial && isActivity(initial) ? initial.data : {}
 	// Strava's API agreement only allows your Strava data to be shown to you
 	const lockedPrivate = initial?.source === 'strava'
+	const imported = initial && initial.source !== 'manual' ? initial.source : null
 
 	const [title, setTitle] = useState(initial?.title ?? '')
 	const [topic, setTopic] = useState(initial?.topic ?? '')
 	const [body, setBody] = useState(initial?.body ?? '')
 	const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'public')
 	const [watchedOn, setWatchedOn] = useState(toDateInput(initial?.occurred_at ?? new Date().toISOString()))
-	const [year, setYear] = useState(film.year?.toString() ?? '')
-	const [director, setDirector] = useState(film.director ?? '')
+	const [details, setDetails] = useState<FilmDetails | null>(
+		initial && isFilm(initial)
+			? {
+					title: initial.title,
+					year: film.year,
+					director: film.director,
+					poster_url: film.poster_url,
+					tmdb_id: film.tmdb_id,
+				}
+			: null,
+	)
+	const [changingFilm, setChangingFilm] = useState(false)
+	const ratingRef = useRef<HTMLSelectElement>(null)
 	const [rating, setRating] = useState(film.rating?.toString() ?? '')
 	const [liked, setLiked] = useState(film.liked ?? false)
 	const [rewatch, setRewatch] = useState(film.rewatch ?? false)
-	const [posterUrl, setPosterUrl] = useState(film.poster_url ?? '')
 	const [sport, setSport] = useState(activity.sport ?? 'Run')
 	const [distanceKm, setDistanceKm] = useState(activity.distance_m ? String(activity.distance_m / 1000) : '')
 	const [movingTime, setMovingTime] = useState(activity.moving_time_s ? formatDuration(activity.moving_time_s) : '')
@@ -137,20 +151,36 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 			}
 		}
 
+		// The backend owns the film's details (from TMDB, or Letterboxd for imports); they're sent
+		// as they are so the payload matches what will be saved
 		return {
 			...common,
+			title: details?.title ?? '',
 			occurred_at,
 			data: {
-				// Keep fields the form doesn't edit, e.g. letterboxd_url and tmdb_id on imported films
 				...film,
-				year: year ? Number(year) : undefined,
-				director: director.trim() || undefined,
+				year: details?.year,
+				director: details?.director,
+				poster_url: details?.poster_url,
+				tmdb_id: details?.tmdb_id,
 				rating: rating ? Number(rating) : undefined,
 				liked,
 				rewatch,
-				poster_url: posterUrl.trim() || undefined,
 			},
 		}
+	}
+
+	function pickFromTmdb(movie: TmdbMovie) {
+		setDetails({
+			title: movie.title,
+			year: movie.year,
+			director: movie.director,
+			poster_url: movie.poster_url,
+			tmdb_id: movie.tmdb_id,
+		})
+		setChangingFilm(false)
+		// The search goes away once a film is picked; carry on with the rating
+		ratingRef.current?.focus()
 	}
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -167,7 +197,21 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 	}
 
 	const heading = initial ? `Tend ${KINDS[kind].label.toLowerCase()}` : KINDS[kind].create
-	const imported = initial && initial.source !== 'manual' ? initial.source : null
+	// Films logged here are picked from TMDB; imported ones keep their provider's details
+	const needsFilm = kind === 'film' && !imported && !details?.tmdb_id
+	const showSearch = kind === 'film' && !imported && (needsFilm || changingFilm)
+
+	const topicField = (
+		<label>
+			<span>{kind === 'note' ? 'Topic' : 'Topic (optional)'}</span>
+			<input value={topic} onChange={(e) => setTopic(e.target.value)} list="topic-options" required={kind === 'note'} />
+			<datalist id="topic-options">
+				{topics.map((option) => (
+					<option key={option} value={option} />
+				))}
+			</datalist>
+		</label>
+	)
 
 	return (
 		<section>
@@ -180,32 +224,40 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 			)}
 			{imported === 'letterboxd' && (
 				<p className="notice">
-					Imported from Letterboxd. Your title, topic and review edits are kept, but the rating, liked,
-					rewatch, year, poster and watched date are refreshed from Letterboxd on every sync.
+					Imported from Letterboxd, so the film's details come from there. Your topic and review edits are
+					kept, but the rating, liked, rewatch and watched date are refreshed from Letterboxd on every sync.
 				</p>
 			)}
+			{kind === 'film' && details && (
+				<PickedFilm
+					details={details}
+					imported={imported}
+					action={
+						imported || needsFilm
+							? undefined
+							: changingFilm
+								? { label: 'Keep this film', onClick: () => setChangingFilm(false) }
+								: { label: 'Change film', onClick: () => setChangingFilm(true) }
+					}
+				/>
+			)}
+			{kind === 'film' && details && needsFilm && (
+				<p className="notice">
+					This film was logged before films came from TMDB. Pick it below to save changes: its title, year,
+					director and poster will then come from TMDB.
+				</p>
+			)}
+			{showSearch && <TmdbSearch onPick={pickFromTmdb} autoFocus />}
 			<form className="note-form" onSubmit={handleSubmit}>
-				<div className="note-form-row">
-					<label>
-						<span>Title</span>
-						<input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
-					</label>
-
-					<label>
-						<span>{kind === 'note' ? 'Topic' : 'Topic (optional)'}</span>
-						<input
-							value={topic}
-							onChange={(e) => setTopic(e.target.value)}
-							list="topic-options"
-							required={kind === 'note'}
-						/>
-						<datalist id="topic-options">
-							{topics.map((option) => (
-								<option key={option} value={option} />
-							))}
-						</datalist>
-					</label>
-				</div>
+				{kind !== 'film' && (
+					<div className="note-form-row">
+						<label>
+							<span>Title</span>
+							<input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
+						</label>
+						{topicField}
+					</div>
+				)}
 
 				{kind === 'activity' && (
 					<>
@@ -265,61 +317,34 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 				)}
 
 				{kind === 'film' && (
-					<>
-						<div className="note-form-row note-form-row-4">
-							<label>
-								<span>Watched on</span>
-								<input type="date" value={watchedOn} onChange={(e) => setWatchedOn(e.target.value)} required />
+					<div className="note-form-row note-form-row-4">
+						<label>
+							<span>Watched on</span>
+							<input type="date" value={watchedOn} onChange={(e) => setWatchedOn(e.target.value)} required />
+						</label>
+						<label>
+							<span>Rating</span>
+							<select ref={ratingRef} value={rating} onChange={(e) => setRating(e.target.value)}>
+								<option value="">No rating</option>
+								{RATINGS.map((value) => (
+									<option key={value} value={value}>
+										{stars(value)} ({value})
+									</option>
+								))}
+							</select>
+						</label>
+						{topicField}
+						<div className="checkbox-row">
+							<label className="checkbox">
+								<input type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
+								<span>Liked ♥</span>
 							</label>
-							<label>
-								<span>Year</span>
-								<input
-									type="number"
-									min={1870}
-									max={2100}
-									value={year}
-									onChange={(e) => setYear(e.target.value)}
-								/>
-							</label>
-							<label>
-								<span>Director</span>
-								<input value={director} onChange={(e) => setDirector(e.target.value)} />
-							</label>
-							<label>
-								<span>Rating</span>
-								<select value={rating} onChange={(e) => setRating(e.target.value)}>
-									<option value="">No rating</option>
-									{RATINGS.map((value) => (
-										<option key={value} value={value}>
-											{stars(value)} ({value})
-										</option>
-									))}
-								</select>
+							<label className="checkbox">
+								<input type="checkbox" checked={rewatch} onChange={(e) => setRewatch(e.target.checked)} />
+								<span>Rewatch ↻</span>
 							</label>
 						</div>
-
-						<div className="note-form-row">
-							<label>
-								<span>Poster URL</span>
-								<input
-									type="url"
-									value={posterUrl}
-									onChange={(e) => setPosterUrl(e.target.value)}
-									placeholder="https://…"
-								/>
-							</label>
-							<div className="checkbox-row">
-								<label className="checkbox">
-									<input type="checkbox" checked={liked} onChange={(e) => setLiked(e.target.checked)} />
-									<span>Liked ♥</span>
-								</label>
-								<label className="checkbox">
-									<input type="checkbox" checked={rewatch} onChange={(e) => setRewatch(e.target.checked)} />
-									<span>Rewatch ↻</span>
-								</label>
-							</div>
-						</div>
-					</>
+					</div>
 				)}
 
 				<div className="note-editor">
@@ -366,7 +391,7 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 				{error && <p className="notice notice-error">{error}</p>}
 
 				<div className="note-actions">
-					<button type="submit" className="pill-button" disabled={saving}>
+					<button type="submit" className="pill-button" disabled={saving || needsFilm}>
 						{saving ? 'Saving…' : `Save ${KINDS[kind].label.toLowerCase()}`}
 					</button>
 					<Link className="pill-button pill-button-quiet" to={initial ? itemPath(initial) : '/admin'}>
@@ -375,5 +400,56 @@ function ItemForm({ kind, initial, topics, onSave }: ItemFormProps) {
 				</div>
 			</form>
 		</section>
+	)
+}
+
+/** The film itself. It comes from TMDB (or from Letterboxd, for imports) and isn't edited here. */
+interface FilmDetails {
+	title: string
+	year?: number
+	director?: string
+	poster_url?: string
+	tmdb_id?: number
+}
+
+function PickedFilm({
+	details,
+	imported,
+	action,
+}: {
+	details: FilmDetails
+	imported: string | null
+	action?: { label: string; onClick: () => void }
+}) {
+	return (
+		<div className="picked-film">
+			{details.poster_url ? (
+				<img className="poster picked-film-poster" src={details.poster_url} alt="" referrerPolicy="no-referrer" />
+			) : (
+				<div className="poster picked-film-poster poster-placeholder" aria-hidden="true">
+					<span>{details.title}</span>
+				</div>
+			)}
+			<div className="picked-film-text">
+				<h3 className="picked-film-title">{details.title}</h3>
+				<p className="meta">{[details.year, details.director].filter(Boolean).join(' · ') || 'No year or director'}</p>
+				<p className="field-hint">
+					{imported === 'letterboxd' ? (
+						'From Letterboxd'
+					) : details.tmdb_id ? (
+						<a href={tmdbMovieUrl(details.tmdb_id)} target="_blank" rel="noreferrer">
+							On TMDB ↗
+						</a>
+					) : (
+						'Not linked to TMDB yet'
+					)}
+				</p>
+			</div>
+			{action && (
+				<button type="button" className="pill-button pill-button-quiet" onClick={action.onClick}>
+					{action.label}
+				</button>
+			)}
+		</div>
 	)
 }
