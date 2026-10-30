@@ -18,6 +18,7 @@ import {
 	sportLabel,
 } from '../items'
 import { editItemPath, itemPath, KINDS, topicPath } from '../kinds'
+import { tmdbMovieUrl } from '../site'
 import { useItems } from '../state/ItemsContext'
 import { NotFoundPage } from './NotFoundPage'
 
@@ -98,6 +99,13 @@ export function ItemPage({ kind }: { kind: ItemKind }) {
 							) : (
 								'Letterboxd'
 							)}
+						</MetaRow>
+					)}
+					{isFilm(item) && item.data.tmdb_id && (
+						<MetaRow label="Details">
+							<a href={tmdbMovieUrl(item.data.tmdb_id)} target="_blank" rel="noreferrer">
+								TMDB ↗
+							</a>
 						</MetaRow>
 					)}
 					{item.source === 'strava' && (

@@ -13,6 +13,7 @@ pub struct ConnectorSettings {
 	/// 0 turns automatic syncing off.
 	pub sync_interval_minutes: u64,
 	pub strava: StravaConfig,
+	pub tmdb: TmdbConfig,
 }
 
 /// A Strava API application's details. Strava is off while `client_id` is empty.
@@ -28,6 +29,23 @@ pub struct StravaConfig {
 impl StravaConfig {
 	pub fn is_configured(&self) -> bool {
 		!self.client_id.trim().is_empty() && !self.client_secret.trim().is_empty()
+	}
+}
+
+/// The Movie Database, used to look films up while logging them. Off while the token is empty.
+#[derive(serde::Deserialize, Clone, Debug)]
+pub struct TmdbConfig {
+	/// The "API Read Access Token" from https://www.themoviedb.org/settings/api, sent as a
+	/// bearer token (so it never appears in URLs or logs).
+	pub read_access_token: String,
+	pub api_base_url: String,
+	/// Poster URLs are `{image_base_url}/{size}{poster_path}`.
+	pub image_base_url: String,
+}
+
+impl TmdbConfig {
+	pub fn is_configured(&self) -> bool {
+		!self.read_access_token.trim().is_empty()
 	}
 }
 

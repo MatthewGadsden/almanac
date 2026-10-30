@@ -1387,6 +1387,25 @@ section {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 
+	/* The film's text gets the card's width; the button moves underneath */
+	.picked-film {
+		flex-wrap: wrap;
+	}
+
+	.picked-film-text {
+		flex-basis: calc(100% - 5.6rem);
+	}
+
+	.picked-film .pill-button {
+		margin-left: 5.6rem;
+	}
+
+	/* Liked and rewatch get a row of their own */
+	.note-form-row-4 .checkbox-row {
+		grid-column: 1 / -1;
+		padding-bottom: 0;
+	}
+
 	.diary-row {
 		grid-template-columns: 1.75rem 2.4rem minmax(0, 1fr) auto;
 		gap: 0.75rem;
@@ -1476,6 +1495,121 @@ section {
 	.admin-notes li .meta {
 		display: none;
 	}
+}
+
+/* The film on the film form: picked from TMDB, not edited */
+.picked-film {
+	display: flex;
+	align-items: center;
+	gap: 1.1rem;
+	margin-bottom: 1.1rem;
+	padding: 0.8rem;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+}
+
+.picked-film-poster {
+	width: 4.5rem;
+	flex-shrink: 0;
+}
+
+.picked-film-text {
+	flex: 1;
+	min-width: 0;
+}
+
+.picked-film-title {
+	margin: 0 0 0.3rem;
+	font-size: 1.15rem;
+	font-weight: 500;
+	color: var(--text-emphasis);
+}
+
+.picked-film-text p {
+	margin: 0.2rem 0 0;
+}
+
+.picked-film a {
+	color: var(--text-link);
+}
+
+.picked-film a:hover {
+	color: var(--text-link-hover);
+}
+
+/* TMDB search on the film form, and TMDB credits */
+.tmdb-search {
+	gap: 0.6rem;
+	margin-bottom: 1.1rem;
+}
+
+.tmdb-search .field-hint {
+	margin: 0;
+}
+
+.tmdb-search a,
+.tmdb-credit a,
+.connection-link {
+	color: var(--text-link);
+}
+
+.tmdb-search a:hover,
+.tmdb-credit a:hover,
+.connection-link:hover {
+	color: var(--text-link-hover);
+}
+
+.tmdb-results {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 27rem;
+	overflow-y: auto;
+	border: 1px solid var(--border-soft);
+	border-radius: 5px;
+	background: var(--bg-surface-strong);
+	backdrop-filter: var(--surface-blur);
+}
+
+.tmdb-result {
+	display: grid;
+	grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.55rem 0.8rem;
+	cursor: pointer;
+}
+
+.tmdb-result + .tmdb-result {
+	border-top: 1px solid var(--border-soft);
+}
+
+.tmdb-result-active {
+	background: var(--column-tint);
+}
+
+.tmdb-result-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	min-width: 0;
+}
+
+.tmdb-result-title {
+	font-weight: 500;
+	color: var(--text-emphasis);
+}
+
+.tmdb-result-overview {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tmdb-credit {
+	margin-top: 1.5rem;
 }
 
 /* ---------- Connections (admin) ---------- */

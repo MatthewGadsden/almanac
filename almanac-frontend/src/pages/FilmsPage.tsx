@@ -5,6 +5,7 @@ import { LoadState } from '../components/LoadState'
 import { PrivateBadge } from '../components/PrivateBadge'
 import { byRecentlyOccurred, groupByMonth, isFilm, stars } from '../items'
 import { itemPath, KINDS, newItemPath } from '../kinds'
+import { TMDB_NOTICE, TMDB_URL } from '../site'
 import { useItems } from '../state/ItemsContext'
 
 /** /films: every film, newest first, grouped by the month it was watched. */
@@ -19,6 +20,8 @@ export function FilmsPage() {
 	const films = items.filter(isFilm).sort(byRecentlyOccurred)
 	const thisYear = new Date().getFullYear()
 	const watchedThisYear = films.filter((film) => new Date(film.occurred_at).getFullYear() === thisYear).length
+	// Films logged by hand and linked to TMDB took their details and poster from it
+	const usesTmdb = films.some((film) => film.source === 'manual' && film.data.tmdb_id)
 	const ratings = films.flatMap((film) => (film.data.rating ? [film.data.rating] : []))
 	const averageRating = ratings.length
 		? Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 2) / 2
@@ -78,6 +81,16 @@ export function FilmsPage() {
 						</div>
 					))}
 				</>
+			)}
+
+			{usesTmdb && (
+				<p className="field-hint tmdb-credit">
+					Some film details and posters come from{' '}
+					<a href={TMDB_URL} target="_blank" rel="noreferrer">
+						TMDB
+					</a>
+					. {TMDB_NOTICE}
+				</p>
 			)}
 		</section>
 	)

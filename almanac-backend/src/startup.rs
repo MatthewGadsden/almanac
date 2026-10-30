@@ -13,7 +13,7 @@ use crate::connectors::ConnectorContext;
 use crate::routes::{
 	create_item, current_admin, delete_connection, delete_item, get_item, health_check,
 	list_connections, list_items, login, logout, save_connection, strava_authorize,
-	strava_callback, sync_connection, update_item,
+	strava_callback, sync_connection, tmdb_movie, tmdb_search, tmdb_status, update_item,
 };
 
 /// Session cookie settings, taken from `Settings`.
@@ -81,6 +81,12 @@ pub fn run(
 					.route("/{provider}", web::put().to(save_connection))
 					.route("/{provider}", web::delete().to(delete_connection))
 					.route("/{provider}/sync", web::post().to(sync_connection)),
+			)
+			.service(
+				web::scope("/tmdb")
+					.route("", web::get().to(tmdb_status))
+					.route("/search", web::get().to(tmdb_search))
+					.route("/movies/{id}", web::get().to(tmdb_movie)),
 			)
 			.app_data(db_pool.clone())
 			.app_data(connectors.clone())

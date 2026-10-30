@@ -4,8 +4,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::auth::AdminUser;
-use crate::connectors::Provider;
-use crate::domain::{Item, ItemKind, ItemPayload, Visibility};
+use crate::connectors::{ConnectorContext, Provider, tmdb};
+use crate::domain::{FilmData, Item, ItemKind, ItemPayload, ValidItem, Visibility};
 use crate::error::ApiError;
 
 /// An `items` row as stored; `kind` and `visibility` are checked when converting to `Item`.
@@ -78,15 +78,86 @@ pub async fn list_items(
 	Ok(HttpResponse::Ok().json(items))
 }
 
+/// What's already stored for an item that's being updated.
+struct Existing {
+	kind: String,
+	title: String,
+	data: serde_json::Value,
+	source: String,
+}
+
+/// A film's details aren't edited by hand. One logged here takes its title, year, director and
+/// poster from TMDB by `tmdb_id`, fetched only when that id is new; one imported from a provider
+/// keeps what the provider gave it. The rest (rating, liked, rewatch, review, ...) is the admin's.
+async fn fill_film_details(
+	item: &mut ValidItem,
+	existing: Option<&Existing>,
+	context: &ConnectorContext,
+) -> Result<(), ApiError> {
+	if item.kind != ItemKind::Film {
+		return Ok(());
+	}
+
+	let mut film = FilmData::parse(item.data.clone()).map_err(ApiError::Validation)?;
+	let stored = existing
+		.filter(|existing| existing.kind == ItemKind::Film.as_str())
+		.map(|existing| {
+			FilmData::parse(existing.data.clone())
+				.map(|data| (existing, data))
+				.map_err(|e| ApiError::Unexpected(format!("Stored film data is invalid: {e}")))
+		})
+		.transpose()?;
+
+	match stored {
+		Some((existing, stored))
+			if existing.source != "manual"
+				|| (stored.tmdb_id.is_some() && stored.tmdb_id == film.tmdb_id) =>
+		{
+			item.title = existing.title.clone();
+			film.year = stored.year;
+			film.director = stored.director;
+			film.poster_url = stored.poster_url;
+			film.letterboxd_url = stored.letterboxd_url;
+			film.tmdb_id = stored.tmdb_id;
+		}
+		_ => {
+			let tmdb_id = film.tmdb_id.ok_or_else(|| {
+				ApiError::Validation(
+					"tmdb_id is required: films are picked from TMDB, which supplies their title, \
+					year, director and poster"
+						.into(),
+				)
+			})?;
+			let movie = tmdb::movie(context, tmdb_id).await.map_err(|e| match e {
+				ApiError::NotFound => {
+					ApiError::Validation(format!("TMDB has no film with id {tmdb_id}"))
+				}
+				e => e,
+			})?;
+
+			item.title = movie.title;
+			film.year = movie.year;
+			film.director = movie.director;
+			film.poster_url = movie.poster_url;
+			film.letterboxd_url = None;
+		}
+	}
+
+	item.data = film.to_value();
+	Ok(())
+}
+
 pub async fn create_item(
 	_admin: AdminUser,
 	payload: web::Json<ItemPayload>,
 	pool: web::Data<PgPool>,
+	context: web::Data<ConnectorContext>,
 ) -> Result<HttpResponse, ApiError> {
-	let item = payload
+	let mut item = payload
 		.into_inner()
 		.validate()
 		.map_err(ApiError::Validation)?;
+	fill_film_details(&mut item, None, context.get_ref()).await?;
 	let now = Utc::now();
 
 	let row = sqlx::query_as!(
@@ -143,29 +214,35 @@ pub async fn update_item(
 	id: web::Path<Uuid>,
 	payload: web::Json<ItemPayload>,
 	pool: web::Data<PgPool>,
+	context: web::Data<ConnectorContext>,
 ) -> Result<HttpResponse, ApiError> {
 	let id = id.into_inner();
-	let item = payload
+	let mut item = payload
 		.into_inner()
 		.validate()
 		.map_err(ApiError::Validation)?;
 
-	if item.visibility == Some(Visibility::Public) {
-		let source = sqlx::query_scalar!("SELECT source FROM items WHERE id = $1", id)
-			.fetch_optional(pool.get_ref())
-			.await?;
-		if source
-			.as_deref()
-			.and_then(Provider::parse)
+	let existing = sqlx::query_as!(
+		Existing,
+		"SELECT kind, title, data, source FROM items WHERE id = $1",
+		id
+	)
+	.fetch_optional(pool.get_ref())
+	.await?
+	.ok_or(ApiError::NotFound)?;
+
+	if item.visibility == Some(Visibility::Public)
+		&& Provider::parse(&existing.source)
 			.is_some_and(|provider| !provider.allows_public_imports())
-		{
-			return Err(ApiError::Validation(
-				"Strava's API agreement only allows your Strava data to be shown to you, so \
-				activities imported from Strava stay private"
-					.into(),
-			));
-		}
+	{
+		return Err(ApiError::Validation(
+			"Strava's API agreement only allows your Strava data to be shown to you, so \
+			activities imported from Strava stay private"
+				.into(),
+		));
 	}
+
+	fill_film_details(&mut item, Some(&existing), context.get_ref()).await?;
 
 	let row = sqlx::query_as!(
 		ItemRow,

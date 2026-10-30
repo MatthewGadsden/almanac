@@ -22,6 +22,8 @@ pub struct TestApp {
 	pub letterboxd: MockServer,
 	/// Stands in for Strava: OAuth under /oauth, the API under /api/v3.
 	pub strava: MockServer,
+	/// Stands in for TMDB's API (under /3); its token is `test-tmdb-token`.
+	pub tmdb: MockServer,
 }
 
 pub struct TestAdmin {
@@ -197,6 +199,7 @@ pub async fn spawn_app_with(configure: impl FnOnce(&mut Settings)) -> TestApp {
 
 	let letterboxd = MockServer::start().await;
 	let strava = MockServer::start().await;
+	let tmdb = MockServer::start().await;
 
 	let mut configuration = get_configuration().expect("Failed to read configuration");
 	configuration.database.database_name = Uuid::new_v4().to_string();
@@ -205,6 +208,9 @@ pub async fn spawn_app_with(configure: impl FnOnce(&mut Settings)) -> TestApp {
 	configuration.connectors.strava.client_secret = "test-secret".into();
 	configuration.connectors.strava.oauth_base_url = format!("{}/oauth", strava.uri());
 	configuration.connectors.strava.api_base_url = format!("{}/api/v3", strava.uri());
+	configuration.connectors.tmdb.read_access_token = "test-tmdb-token".into();
+	configuration.connectors.tmdb.api_base_url = format!("{}/3", tmdb.uri());
+	configuration.connectors.tmdb.image_base_url = "https://image.tmdb.test/t/p".into();
 	configure(&mut configuration);
 
 	let connection_pool = configure_database(&configuration.database).await;
@@ -231,6 +237,7 @@ pub async fn spawn_app_with(configure: impl FnOnce(&mut Settings)) -> TestApp {
 		test_admin,
 		letterboxd,
 		strava,
+		tmdb,
 	}
 }
 

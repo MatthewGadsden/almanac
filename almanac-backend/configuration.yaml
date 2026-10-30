@@ -27,3 +27,10 @@ connectors:
     redirect_uri: "http://localhost:5173/admin/strava/callback"
     oauth_base_url: "https://www.strava.com/oauth"
     api_base_url: "https://www.strava.com/api/v3"
+  tmdb:
+    # The "API Read Access Token" from https://www.themoviedb.org/settings/api, used to search
+    # for films while logging them. Leave it empty to turn TMDB off. Don't commit it: put it in
+    # configuration.local.yaml or set APP_CONNECTORS__TMDB__READ_ACCESS_TOKEN instead
+    read_access_token: ""
+    api_base_url: "https://api.themoviedb.org/3"
+    image_base_url: "https://image.tmdb.org/t/p"

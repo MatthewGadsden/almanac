@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import * as api from '../api'
 import type { Connection, SyncSummary, Visibility } from '../api'
 import { formatDateTime } from '../items'
+import { TMDB_NOTICE, TMDB_URL } from '../site'
 import { useItems } from '../state/ItemsContext'
 
 /** Admin: connect services that items are imported from, and sync them. */
@@ -51,6 +52,7 @@ export function Connections() {
 						connection={connections.find((c) => c.provider === 'strava') ?? null}
 						onChange={(next) => replace('strava', next)}
 					/>
+					<TmdbConnection />
 				</div>
 			)}
 		</>
@@ -202,8 +204,8 @@ function LetterboxdConnection({
 				<p className="notice notice-error">{error ?? connection?.last_error}</p>
 			)}
 			<p className="field-hint">
-				Each sync refreshes ratings, likes, rewatches, posters and watch dates from Letterboxd. Titles,
-				reviews and topics you've edited here are left alone.
+				Each sync refreshes ratings, likes, rewatches, posters and watch dates from Letterboxd. Reviews
+				and topics you've edited here are left alone.
 			</p>
 		</section>
 	)
@@ -404,6 +406,53 @@ function StravaConnection({
 				{connection
 					? "The first sync imports your whole history; after that each sync fetches what's new. Figures and start times follow Strava; your titles, topics and notes are kept."
 					: 'Needs a Strava API application: set connectors.strava.client_id and client_secret in the backend (see its README).'}
+			</p>
+		</section>
+	)
+}
+
+/** TMDB isn't synced, so there's nothing to connect here: it's on when the backend has a token. */
+function TmdbConnection() {
+	const [configured, setConfigured] = useState<boolean | null>(null)
+
+	useEffect(() => {
+		let cancelled = false
+		api.tmdbStatus().then(
+			(status) => !cancelled && setConfigured(status.configured),
+			() => !cancelled && setConfigured(false),
+		)
+		return () => {
+			cancelled = true
+		}
+	}, [])
+
+	return (
+		<section className="connection">
+			<div className="connection-header">
+				<div>
+					<h4 className="connection-name">TMDB</h4>
+					<p className="connection-description">
+						Films you log here are picked from The Movie Database, which supplies their title, year,
+						director and poster. Nothing is imported.
+					</p>
+				</div>
+			</div>
+
+			<dl className="connection-status">
+				<div>
+					<dt>Film search</dt>
+					<dd>{configured === null ? 'Checking…' : configured ? 'On' : 'Off'}</dd>
+				</div>
+			</dl>
+
+			<p className="field-hint">
+				{configured === false &&
+					"Needs a TMDB read access token: set connectors.tmdb.read_access_token in the backend (see its README). Until then, films can't be logged by hand. "}
+				Film data from{' '}
+				<a className="connection-link" href={TMDB_URL} target="_blank" rel="noreferrer">
+					TMDB
+				</a>
+				. {TMDB_NOTICE}
 			</p>
 		</section>
 	)
